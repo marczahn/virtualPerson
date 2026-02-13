@@ -2,6 +2,7 @@ package consciousness
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,13 +12,17 @@ import (
 
 // mockLLM is a test double for the LLM interface.
 type mockLLM struct {
-	response string
-	err      error
-	calls    int
+	response    string
+	err         error
+	calls       int
+	lastUser    string
+	lastSystem  string
 }
 
 func (m *mockLLM) Complete(ctx context.Context, system, user string) (string, error) {
 	m.calls++
+	m.lastSystem = system
+	m.lastUser = user
 	return m.response, m.err
 }
 
@@ -193,5 +198,99 @@ func TestEngine_MinCallInterval_Respected(t *testing.T) {
 
 	if thought != nil {
 		t.Error("expected rate limiting to prevent second call")
+	}
+}
+
+func TestEngine_Respond_Speech_GeneratesThought(t *testing.T) {
+	llm := &mockLLM{response: "Oh, someone's talking to me."}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	ps := &psychology.State{Arousal: 0.3, Valence: 0.2, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "Hello, how are you?"}
+
+	thought, err := engine.Respond(context.Background(), ps, input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if thought == nil {
+		t.Fatal("expected thought from speech input")
+	}
+	if thought.Type != Conversational {
+		t.Errorf("type = %s, expected conversational", thought.Type)
+	}
+	if thought.Content != "Oh, someone's talking to me." {
+		t.Errorf("content = %q, unexpected", thought.Content)
+	}
+	if thought.Trigger != "Hello, how are you?" {
+		t.Errorf("trigger = %q, expected speech content", thought.Trigger)
+	}
+}
+
+func TestEngine_Respond_Action_GeneratesThought(t *testing.T) {
+	llm := &mockLLM{response: "Ow, that hurt!"}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	ps := &psychology.State{Arousal: 0.5, Valence: -0.1, Energy: 0.5}
+	input := ExternalInput{Type: InputAction, Content: "pushes you hard"}
+
+	thought, err := engine.Respond(context.Background(), ps, input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if thought == nil {
+		t.Fatal("expected thought from action input")
+	}
+	if thought.Type != Conversational {
+		t.Errorf("type = %s, expected conversational", thought.Type)
+	}
+}
+
+func TestEngine_Respond_RateLimited(t *testing.T) {
+	llm := &mockLLM{response: "test"}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: time.Hour,
+	})
+
+	engine.lastCallTime = time.Now()
+
+	ps := &psychology.State{Arousal: 0.3}
+	input := ExternalInput{Type: InputSpeech, Content: "hello"}
+
+	thought, err := engine.Respond(context.Background(), ps, input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if thought != nil {
+		t.Error("expected nil thought due to rate limiting")
+	}
+}
+
+func TestEngine_Respond_ContentReachesPrompt(t *testing.T) {
+	llm := &mockLLM{response: "I hear you."}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	ps := &psychology.State{Arousal: 0.3, Valence: 0.2, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "Do you like pizza?"}
+
+	_, err := engine.Respond(context.Background(), ps, input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(llm.lastUser, "Do you like pizza?") {
+		t.Errorf("expected speech content in prompt, got: %s", llm.lastUser)
+	}
+	if !strings.Contains(llm.lastUser, "Someone says to you") {
+		t.Errorf("expected speech framing in prompt, got: %s", llm.lastUser)
 	}
 }

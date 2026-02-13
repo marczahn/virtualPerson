@@ -193,6 +193,67 @@ func TestSpontaneousPrompt_ContainsCandidate(t *testing.T) {
 	}
 }
 
+func TestExternalInputPrompt_Speech(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Arousal: 0.3, Valence: 0.2, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "How are you feeling?"}
+
+	prompt := pb.ExternalInputPrompt(ps, input, nil, "")
+
+	if !strings.Contains(prompt, "Someone says to you") {
+		t.Error("speech prompt should contain speech framing")
+	}
+	if !strings.Contains(prompt, "How are you feeling?") {
+		t.Error("speech prompt should contain the spoken words")
+	}
+	if !strings.Contains(prompt, "Your current experience") {
+		t.Error("speech prompt should contain state block")
+	}
+}
+
+func TestExternalInputPrompt_Action(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Arousal: 0.5, Valence: -0.2, Energy: 0.5}
+	input := ExternalInput{Type: InputAction, Content: "gives you a warm blanket"}
+
+	prompt := pb.ExternalInputPrompt(ps, input, nil, "")
+
+	if !strings.Contains(prompt, "Someone does this") {
+		t.Error("action prompt should contain action framing")
+	}
+	if !strings.Contains(prompt, "gives you a warm blanket") {
+		t.Error("action prompt should contain the action description")
+	}
+}
+
+func TestExternalInputPrompt_IncludesMemories(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{}
+	input := ExternalInput{Type: InputSpeech, Content: "hello"}
+	memories := []memory.EpisodicMemory{
+		{Content: "The stranger seemed kind"},
+	}
+
+	prompt := pb.ExternalInputPrompt(ps, input, memories, "")
+
+	if !strings.Contains(prompt, "stranger seemed kind") {
+		t.Error("prompt should include memory content")
+	}
+}
+
+func TestExternalInputPrompt_IncludesDistortions(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{}
+	input := ExternalInput{Type: InputSpeech, Content: "hello"}
+	distCtx := DistortionContext([]psychology.Distortion{psychology.MindReading})
+
+	prompt := pb.ExternalInputPrompt(ps, input, nil, distCtx)
+
+	if !strings.Contains(prompt, "what others are thinking") {
+		t.Error("prompt should contain distortion description")
+	}
+}
+
 func TestTrimMemories_RespectsLimit(t *testing.T) {
 	pb := NewPromptBuilder(300) // low budget → ~3 memories max
 

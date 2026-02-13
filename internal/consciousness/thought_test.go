@@ -9,6 +9,7 @@ func TestThoughtType_String_AllValues(t *testing.T) {
 	}{
 		{Reactive, "reactive"},
 		{Spontaneous, "spontaneous"},
+		{Conversational, "conversational"},
 	}
 
 	for _, tc := range tests {
@@ -27,8 +28,8 @@ func TestThoughtType_String_OutOfRange(t *testing.T) {
 }
 
 func TestThoughtType_EnumCount(t *testing.T) {
-	if len(thoughtTypeNames) != int(Spontaneous)+1 {
-		t.Errorf("thoughtTypeNames has %d entries, expected %d", len(thoughtTypeNames), int(Spontaneous)+1)
+	if len(thoughtTypeNames) != int(Conversational)+1 {
+		t.Errorf("thoughtTypeNames has %d entries, expected %d", len(thoughtTypeNames), int(Conversational)+1)
 	}
 }
 

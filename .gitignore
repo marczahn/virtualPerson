@@ -12,5 +12,8 @@
 *.db-wal
 *.db-shm
 
+# Config (contains API keys)
+config.json
+
 # OS files
 .DS_Store

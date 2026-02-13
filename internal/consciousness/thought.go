@@ -11,11 +11,40 @@ const (
 
 	// Spontaneous thoughts emerge from the priority queue when idle.
 	Spontaneous
+
+	// Conversational thoughts are triggered by external speech or actions.
+	Conversational
 )
 
 var thoughtTypeNames = [...]string{
 	"reactive",
 	"spontaneous",
+	"conversational",
+}
+
+// ExternalInputType distinguishes speech from physical actions.
+type ExternalInputType int
+
+const (
+	InputSpeech ExternalInputType = iota
+	InputAction
+)
+
+func (t ExternalInputType) String() string {
+	switch t {
+	case InputSpeech:
+		return "speech"
+	case InputAction:
+		return "action"
+	default:
+		return "unknown"
+	}
+}
+
+// ExternalInput represents communicative input directed at the person.
+type ExternalInput struct {
+	Type    ExternalInputType
+	Content string
 }
 
 func (t ThoughtType) String() string {

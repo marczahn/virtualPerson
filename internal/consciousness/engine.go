@@ -87,12 +87,14 @@ func (e *Engine) React(ctx context.Context, ps *psychology.State, dt float64) (*
 	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
 	userMessage := e.promptBuilder.ReactivePrompt(ps, trigger, relevant, distCtx)
 
+	// Update timestamp before the call so failures don't cause retry floods.
+	e.lastCallTime = time.Now()
+
 	response, err := e.llm.Complete(ctx, systemPrompt, userMessage)
 	if err != nil {
 		return nil, fmt.Errorf("reactive thought: %w", err)
 	}
 
-	e.lastCallTime = time.Now()
 	e.queue.ExitAbsorption()
 
 	feedback := ParseFeedback(response)
@@ -130,13 +132,14 @@ func (e *Engine) Spontaneous(ctx context.Context, ps *psychology.State) (*Though
 	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
 	userMessage := e.promptBuilder.SpontaneousPrompt(ps, candidate, relevant, distCtx)
 
+	// Update timestamps before the call so failures don't cause retry floods.
+	e.lastCallTime = time.Now()
+	e.lastSpontaneous = time.Now()
+
 	response, err := e.llm.Complete(ctx, systemPrompt, userMessage)
 	if err != nil {
 		return nil, fmt.Errorf("spontaneous thought: %w", err)
 	}
-
-	e.lastCallTime = time.Now()
-	e.lastSpontaneous = time.Now()
 
 	feedback := ParseFeedback(response)
 
@@ -145,6 +148,41 @@ func (e *Engine) Spontaneous(ctx context.Context, ps *psychology.State) (*Though
 		Priority:  candidate.Priority,
 		Content:   response,
 		Trigger:   candidate.Category,
+		Timestamp: time.Now(),
+		Feedback:  feedback,
+	}, nil
+}
+
+// Respond generates a conscious thought in response to external communicative
+// input (speech or action). Unlike React, this is not salience-gated — the
+// person always processes direct communication. Returns nil if rate-limited.
+func (e *Engine) Respond(ctx context.Context, ps *psychology.State, input ExternalInput) (*Thought, error) {
+	if !e.canCall() {
+		return nil, nil
+	}
+
+	distCtx := DistortionContext(ps.ActiveDistortions)
+	relevant := e.selectMemories(ps)
+
+	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
+	userMessage := e.promptBuilder.ExternalInputPrompt(ps, input, relevant, distCtx)
+
+	e.lastCallTime = time.Now()
+
+	response, err := e.llm.Complete(ctx, systemPrompt, userMessage)
+	if err != nil {
+		return nil, fmt.Errorf("respond to %s: %w", input.Type, err)
+	}
+
+	e.queue.ExitAbsorption()
+
+	trigger := input.Content
+	feedback := ParseFeedback(response)
+
+	return &Thought{
+		Type:      Conversational,
+		Content:   response,
+		Trigger:   trigger,
 		Timestamp: time.Now(),
 		Feedback:  feedback,
 	}, nil

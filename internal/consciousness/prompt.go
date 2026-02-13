@@ -187,6 +187,44 @@ func distortionDescription(d psychology.Distortion) string {
 	}
 }
 
+// ExternalInputPrompt builds the user message for a thought triggered by
+// external speech or action directed at the person.
+func (pb *PromptBuilder) ExternalInputPrompt(
+	ps *psychology.State,
+	input ExternalInput,
+	recentMemories []memory.EpisodicMemory,
+	distortionContext string,
+) string {
+	var b strings.Builder
+
+	b.WriteString(pb.stateBlock(ps))
+	b.WriteString("\n")
+
+	switch input.Type {
+	case InputSpeech:
+		b.WriteString(fmt.Sprintf("Someone says to you: \"%s\"\n\n", input.Content))
+	case InputAction:
+		b.WriteString(fmt.Sprintf("Someone does this: %s\n\n", input.Content))
+	}
+
+	if distortionContext != "" {
+		b.WriteString(distortionContext)
+		b.WriteString("\n")
+	}
+
+	if len(recentMemories) > 0 {
+		b.WriteString("--- Recent experiences ---\n")
+		for _, m := range pb.trimMemories(recentMemories) {
+			b.WriteString(fmt.Sprintf("- %s\n", m.Content))
+		}
+		b.WriteString("\n")
+	}
+
+	b.WriteString("What do you think and feel? Respond briefly, in first person, as your natural inner voice.")
+
+	return b.String()
+}
+
 // stateBlock renders the psychological state as a felt-experience description.
 // The LLM receives affect dimensions, NOT labeled emotions.
 func (pb *PromptBuilder) stateBlock(ps *psychology.State) string {
