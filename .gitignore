@@ -1,0 +1,16 @@
+# IDE / tool settings
+.claude/
+.idea/
+.vscode/
+
+# Go build artifacts
+/bin/
+/person
+
+# SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
+# OS files
+.DS_Store

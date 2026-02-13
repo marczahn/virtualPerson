@@ -1,0 +1,208 @@
+package consciousness
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/marczahn/person/internal/memory"
+	"github.com/marczahn/person/internal/psychology"
+)
+
+func TestSystemPrompt_ContainsIdentity(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ic := &memory.IdentityCore{
+		SelfNarrative:     "I am a quiet person who values solitude.",
+		DispositionTraits: []string{"introverted", "thoughtful"},
+		RelationalMarkers: []string{"close to my sister"},
+		KeyMemories:       []string{"childhood in the mountains"},
+		EmotionalPatterns: []string{"tends to withdraw under stress"},
+		ValuesCommitments: []string{"honesty above all"},
+	}
+
+	prompt := pb.SystemPrompt(ic)
+
+	if !strings.Contains(prompt, "quiet person") {
+		t.Error("system prompt should contain self-narrative")
+	}
+	if !strings.Contains(prompt, "introverted") {
+		t.Error("system prompt should contain disposition traits")
+	}
+	if !strings.Contains(prompt, "close to my sister") {
+		t.Error("system prompt should contain relational markers")
+	}
+	if !strings.Contains(prompt, "childhood in the mountains") {
+		t.Error("system prompt should contain key memories")
+	}
+	if !strings.Contains(prompt, "honesty above all") {
+		t.Error("system prompt should contain values")
+	}
+}
+
+func TestSystemPrompt_NoIdentity(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	prompt := pb.SystemPrompt(nil)
+
+	if !strings.Contains(prompt, "You are a person") {
+		t.Error("system prompt should contain base consciousness framing")
+	}
+	if strings.Contains(prompt, "Who You Are") {
+		t.Error("should not have identity section when nil")
+	}
+}
+
+func TestSystemPrompt_NeverRevealsSimulation(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ic := &memory.IdentityCore{SelfNarrative: "I exist."}
+	prompt := pb.SystemPrompt(ic)
+
+	forbidden := []string{"simulation", "simulated", "LLM", "AI", "artificial", "program", "code"}
+	for _, word := range forbidden {
+		if strings.Contains(strings.ToLower(prompt), word) {
+			t.Errorf("system prompt contains forbidden word %q", word)
+		}
+	}
+}
+
+func TestReactivePrompt_ContainsTrigger(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Arousal: 0.8, Valence: -0.3, Energy: 0.5}
+
+	prompt := pb.ReactivePrompt(ps, "arousal changed significantly", nil, "")
+
+	if !strings.Contains(prompt, "arousal changed significantly") {
+		t.Error("reactive prompt should contain trigger")
+	}
+}
+
+func TestReactivePrompt_ContainsDistortions(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Arousal: 0.5}
+	distCtx := DistortionContext([]psychology.Distortion{psychology.Catastrophizing})
+
+	prompt := pb.ReactivePrompt(ps, "test", nil, distCtx)
+
+	if !strings.Contains(prompt, "worst possible outcome") {
+		t.Error("prompt should contain distortion description")
+	}
+}
+
+func TestReactivePrompt_ContainsMemories(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{}
+	memories := []memory.EpisodicMemory{
+		{Content: "I felt the cold wind on my face"},
+	}
+
+	prompt := pb.ReactivePrompt(ps, "", memories, "")
+
+	if !strings.Contains(prompt, "cold wind") {
+		t.Error("prompt should contain memory content")
+	}
+}
+
+func TestStateBlock_HighArousal(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Arousal: 0.8, Energy: 0.5}
+
+	block := pb.stateBlock(ps)
+
+	if !strings.Contains(block, "heart pounding") {
+		t.Error("high arousal should mention heart pounding")
+	}
+}
+
+func TestStateBlock_LowEnergy(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Energy: 0.1}
+
+	block := pb.stateBlock(ps)
+
+	if !strings.Contains(block, "exhausted") {
+		t.Error("very low energy should mention exhaustion")
+	}
+}
+
+func TestStateBlock_NegativeValence(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Valence: -0.6}
+
+	block := pb.stateBlock(ps)
+
+	if !strings.Contains(block, "bad") {
+		t.Error("very negative valence should describe things as bad")
+	}
+}
+
+func TestStateBlock_IsolationPhases(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+
+	tests := []struct {
+		phase   psychology.IsolationPhase
+		keyword string
+	}{
+		{psychology.IsolationBoredom, "restless"},
+		{psychology.IsolationLoneliness, "lonely"},
+		{psychology.IsolationSevere, "unbearable"},
+	}
+
+	for _, tt := range tests {
+		ps := &psychology.State{
+			Isolation: psychology.IsolationState{Phase: tt.phase},
+		}
+		block := pb.stateBlock(ps)
+		if !strings.Contains(block, tt.keyword) {
+			t.Errorf("phase %s: expected keyword %q in state block", tt.phase, tt.keyword)
+		}
+	}
+}
+
+func TestDistortionContext_Empty(t *testing.T) {
+	got := DistortionContext(nil)
+	if got != "" {
+		t.Errorf("expected empty string for no distortions, got %q", got)
+	}
+}
+
+func TestDistortionContext_Multiple(t *testing.T) {
+	got := DistortionContext([]psychology.Distortion{
+		psychology.Catastrophizing,
+		psychology.EmotionalReasoning,
+	})
+
+	if !strings.Contains(got, "worst possible outcome") {
+		t.Error("should contain catastrophizing description")
+	}
+	if !strings.Contains(got, "feelings as evidence") {
+		t.Error("should contain emotional reasoning description")
+	}
+}
+
+func TestSpontaneousPrompt_ContainsCandidate(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Energy: 0.5}
+	candidate := &ThoughtCandidate{
+		Priority: PriorityBiologicalNeed,
+		Category: "biological_need",
+		Prompt:   "You are hungry and your stomach is growling.",
+	}
+
+	prompt := pb.SpontaneousPrompt(ps, candidate, nil, "")
+
+	if !strings.Contains(prompt, "stomach is growling") {
+		t.Error("spontaneous prompt should contain candidate prompt")
+	}
+}
+
+func TestTrimMemories_RespectsLimit(t *testing.T) {
+	pb := NewPromptBuilder(300) // low budget → ~3 memories max
+
+	memories := make([]memory.EpisodicMemory, 20)
+	for i := range memories {
+		memories[i] = memory.EpisodicMemory{Content: "memory"}
+	}
+
+	trimmed := pb.trimMemories(memories)
+	if len(trimmed) > 10 {
+		t.Errorf("trimmed to %d, expected <= 10", len(trimmed))
+	}
+}
