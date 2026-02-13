@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,6 +20,7 @@ import (
 	"github.com/marczahn/person/internal/psychology"
 	"github.com/marczahn/person/internal/reviewer"
 	"github.com/marczahn/person/internal/sense"
+	"github.com/marczahn/person/internal/server"
 	"github.com/marczahn/person/internal/simulation"
 )
 
@@ -48,6 +52,10 @@ func loadConfig() config {
 }
 
 func run() error {
+	serverMode := flag.Bool("server", false, "run in server mode with WebSocket support")
+	addr := flag.String("addr", ":8080", "server listen address (server mode only)")
+	flag.Parse()
+
 	fileCfg := loadConfig()
 
 	// Config file values, overridable by env vars.
@@ -159,6 +167,32 @@ func run() error {
 		MaxThoughts: 20,
 	})
 
+	// Determine input source: stdin (default) or pipe from WebSocket hub.
+	var input io.Reader = os.Stdin
+	var hub *server.Hub
+	var pipeWriter *io.PipeWriter
+
+	if *serverMode {
+		pr, pw := io.Pipe()
+		pipeWriter = pw
+		input = pr
+		hub = server.NewHub(pw)
+
+		// Broadcast MIND entries to connected WebSocket clients.
+		display.SetListener(func(entry output.Entry) {
+			if entry.Source != output.Mind {
+				return
+			}
+			hub.Broadcast(server.ServerMessage{
+				Type:        "thought",
+				Content:     entry.Message,
+				ThoughtType: entry.ThoughtType,
+				Trigger:     entry.Trigger,
+				Timestamp:   entry.Timestamp,
+			})
+		})
+	}
+
 	cfg := simulation.Config{
 		BioProcessor:   biology.NewProcessor(),
 		PsychProcessor: psychology.NewProcessor(*personality),
@@ -172,7 +206,7 @@ func run() error {
 		Identity:       identity,
 		TickInterval:   100 * time.Millisecond,
 		SimStart:       time.Date(2024, 6, 15, 8, 0, 0, 0, time.Local),
-		Input:          os.Stdin,
+		Input:          input,
 	}
 
 	loop := simulation.NewLoop(cfg)
@@ -188,6 +222,25 @@ func run() error {
 		fmt.Println("\nShutting down...")
 		cancel()
 	}()
+
+	if *serverMode {
+		httpSrv := &http.Server{
+			Addr:    *addr,
+			Handler: server.NewHandler(hub),
+		}
+		go func() {
+			fmt.Printf("WebSocket server listening on %s\n", *addr)
+			if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				fmt.Fprintf(os.Stderr, "http server error: %v\n", err)
+			}
+		}()
+		defer func() {
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer shutdownCancel()
+			httpSrv.Shutdown(shutdownCtx)
+			pipeWriter.Close()
+		}()
+	}
 
 	fmt.Println("Simulation started. Type to interact, Ctrl+C to quit.")
 	fmt.Printf("Using model: %s\n\n", model)

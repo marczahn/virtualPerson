@@ -6,6 +6,7 @@
 # Go build artifacts
 /bin/
 /person
+/client
 
 # SQLite databases
 *.db

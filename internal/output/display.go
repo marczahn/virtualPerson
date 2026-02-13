@@ -30,6 +30,16 @@ type Display struct {
 	mu       sync.Mutex
 	writer   io.Writer
 	useColor bool
+	listener func(Entry)
+}
+
+// SetListener sets a callback that is invoked for every entry shown.
+// The listener is called under the display's lock, so it must not call
+// back into Display methods.
+func (d *Display) SetListener(fn func(Entry)) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.listener = fn
 }
 
 // NewDisplay creates a display that writes to the given writer.
@@ -57,6 +67,10 @@ func (d *Display) Show(entry Entry) {
 	} else {
 		fmt.Fprintf(d.writer, "%s [%-6s] %s\n", ts, tag, entry.Message)
 	}
+
+	if d.listener != nil {
+		d.listener(entry)
+	}
 }
 
 // ShowThought formats a multi-line consciousness thought with a border.
@@ -73,6 +87,10 @@ func (d *Display) ShowThought(entry Entry) {
 			entry.Message)
 	} else {
 		fmt.Fprintf(d.writer, "%s [%-6s] %s\n", ts, "MIND", entry.Message)
+	}
+
+	if d.listener != nil {
+		d.listener(entry)
 	}
 }
 

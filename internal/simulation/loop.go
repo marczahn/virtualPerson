@@ -338,9 +338,11 @@ func (l *Loop) displayBioChanges(result biology.TickResult, now time.Time) {
 // displayThought shows a consciousness thought.
 func (l *Loop) displayThought(thought *consciousness.Thought, now time.Time) {
 	l.cfg.Display.ShowThought(output.Entry{
-		Source:    output.Mind,
-		Message:   fmt.Sprintf("[%s, trigger: %s] %s", thought.Type, thought.Trigger, thought.Content),
-		Timestamp: now,
+		Source:      output.Mind,
+		Message:     fmt.Sprintf("[%s, trigger: %s] %s", thought.Type, thought.Trigger, thought.Content),
+		Timestamp:   now,
+		ThoughtType: thought.Type.String(),
+		Trigger:     thought.Trigger,
 	})
 }
 

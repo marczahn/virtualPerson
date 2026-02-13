@@ -33,4 +33,10 @@ type Entry struct {
 	Source    Source
 	Message  string
 	Timestamp time.Time
+
+	// ThoughtType and Trigger are set only for Mind entries that represent
+	// consciousness thoughts. They carry structured data so listeners can
+	// avoid parsing the formatted Message string.
+	ThoughtType string
+	Trigger     string
 }
