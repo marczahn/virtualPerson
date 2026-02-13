@@ -13,6 +13,7 @@ import (
 	"github.com/marczahn/person/internal/memory"
 	"github.com/marczahn/person/internal/output"
 	"github.com/marczahn/person/internal/psychology"
+	"github.com/marczahn/person/internal/reviewer"
 	"github.com/marczahn/person/internal/sense"
 )
 
@@ -47,6 +48,10 @@ type Config struct {
 	SenseParser    sense.Parser
 	Display        *output.Display
 	Store          memory.Store
+
+	// Optional meta-observer.
+	Reviewer    *reviewer.Reviewer
+	Personality *psychology.Personality
 
 	// Initial state.
 	BioState *biology.State
@@ -157,6 +162,9 @@ func (l *Loop) tick(ctx context.Context) error {
 		l.displayThought(spontaneous, now)
 		l.applyFeedback(spontaneous, dt)
 	}
+
+	// 6. Psychologist reviewer (optional).
+	l.runReviewer(ctx, reactive, spontaneous, &psychState, now)
 
 	return nil
 }
@@ -271,6 +279,41 @@ func (l *Loop) processEnvironment(content string, now time.Time) {
 				Timestamp: now,
 			})
 		}
+	}
+}
+
+// runReviewer feeds thoughts to the reviewer and displays any observation.
+func (l *Loop) runReviewer(
+	ctx context.Context,
+	reactive, spontaneous *consciousness.Thought,
+	ps *psychology.State,
+	now time.Time,
+) {
+	if l.cfg.Reviewer == nil {
+		return
+	}
+	if reactive != nil {
+		l.cfg.Reviewer.AddThought(*reactive)
+	}
+	if spontaneous != nil {
+		l.cfg.Reviewer.AddThought(*spontaneous)
+	}
+
+	obs, err := l.cfg.Reviewer.Review(ctx, ps, l.cfg.Personality)
+	if err != nil {
+		l.cfg.Display.Show(output.Entry{
+			Source:    output.Review,
+			Message:   fmt.Sprintf("review error: %v", err),
+			Timestamp: now,
+		})
+		return
+	}
+	if obs != nil {
+		l.cfg.Display.Show(output.Entry{
+			Source:    output.Review,
+			Message:   obs.Content,
+			Timestamp: now,
+		})
 	}
 }
 

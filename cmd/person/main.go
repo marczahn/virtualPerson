@@ -15,6 +15,7 @@ import (
 	"github.com/marczahn/person/internal/memory"
 	"github.com/marczahn/person/internal/output"
 	"github.com/marczahn/person/internal/psychology"
+	"github.com/marczahn/person/internal/reviewer"
 	"github.com/marczahn/person/internal/sense"
 	"github.com/marczahn/person/internal/simulation"
 )
@@ -152,6 +153,12 @@ func run() error {
 
 	display := output.NewDisplay(os.Stdout, true)
 
+	psychReviewer := reviewer.NewReviewer(reviewer.ReviewerConfig{
+		LLM:         llm,
+		MinInterval: 60 * time.Second,
+		MaxThoughts: 20,
+	})
+
 	cfg := simulation.Config{
 		BioProcessor:   biology.NewProcessor(),
 		PsychProcessor: psychology.NewProcessor(*personality),
@@ -159,6 +166,8 @@ func run() error {
 		SenseParser:    sense.NewKeywordParser(),
 		Display:        display,
 		Store:          store,
+		Reviewer:       psychReviewer,
+		Personality:    personality,
 		BioState:       bioState,
 		Identity:       identity,
 		TickInterval:   100 * time.Millisecond,

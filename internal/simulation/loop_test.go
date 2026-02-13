@@ -13,6 +13,7 @@ import (
 	"github.com/marczahn/person/internal/memory"
 	"github.com/marczahn/person/internal/output"
 	"github.com/marczahn/person/internal/psychology"
+	"github.com/marczahn/person/internal/reviewer"
 	"github.com/marczahn/person/internal/sense"
 )
 
@@ -314,6 +315,67 @@ func TestClassifyInput_WhitespaceHandling(t *testing.T) {
 	}
 	if content != "waves hello" {
 		t.Errorf("content = %q, expected trimmed action text", content)
+	}
+}
+
+func TestLoop_ReviewerObservationAppearsInOutput(t *testing.T) {
+	var buf bytes.Buffer
+	pr, pw := io.Pipe()
+
+	bioState := ptrBioState(biology.NewDefaultState())
+	personality := psychology.Personality{
+		Openness: 0.5, Conscientiousness: 0.5,
+		Extraversion: 0.5, Agreeableness: 0.5, Neuroticism: 0.5,
+	}
+	identity := &memory.IdentityCore{SelfNarrative: "I am a test person."}
+
+	rev := reviewer.NewReviewer(reviewer.ReviewerConfig{
+		LLM:         &mockLLM{response: "Subject shows signs of acute stress response."},
+		MinInterval: 0,
+		MaxThoughts: 10,
+	})
+
+	cfg := Config{
+		BioProcessor:   biology.NewProcessor(),
+		PsychProcessor: psychology.NewProcessor(personality),
+		Consciousness: consciousness.NewEngine(consciousness.EngineConfig{
+			LLM:                 &mockLLM{response: "I feel startled."},
+			Identity:            identity,
+			MinCallInterval:     0,
+			SpontaneousInterval: 10 * time.Second,
+		}),
+		SenseParser: sense.NewKeywordParser(),
+		Display:     output.NewDisplay(&buf, false),
+		BioState:    bioState,
+		Identity:    identity,
+		Reviewer:    rev,
+		Personality: &personality,
+		TickInterval: 50 * time.Millisecond,
+		SimStart:     time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
+		Input:        pr,
+	}
+
+	loop := NewLoop(cfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- loop.Run(ctx)
+	}()
+
+	// Send speech input to trigger a thought, which feeds the reviewer.
+	pw.Write([]byte("Hello!\n"))
+	time.Sleep(300 * time.Millisecond)
+	cancel()
+	pw.Close()
+	<-done
+
+	out := buf.String()
+	if !strings.Contains(out, "REVIEW") {
+		t.Errorf("expected REVIEW tag in output, got:\n%s", out)
+	}
+	if !strings.Contains(out, "acute stress response") {
+		t.Errorf("expected reviewer observation in output, got:\n%s", out)
 	}
 }
 
