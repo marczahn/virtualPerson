@@ -295,11 +295,29 @@ func (p *Processor) applyDecay(s *State, dt float64) []StateChange {
 		changes = append(changes, StateChange{VarSpO2, recovery, "respiratory_recovery"})
 	}
 
-	// Blood sugar: slow drift toward 90 (insulin homeostasis)
+	// Blood sugar: insulin homeostasis pulls toward 90.
+	// Half-life shortens as blood sugar rises (stronger insulin response):
+	//   95–120: ~30 min (normal postprandial)
+	//   120–160: ~15 min (elevated insulin)
+	//   >160: ~8 min (aggressive correction)
 	if s.BloodSugar > 95 {
-		pull := (s.BloodSugar - 90) * (1 - math.Exp(-0.693/5400*dt)) // ~90min
+		halfLife := 1800.0 // 30 min default
+		if s.BloodSugar > 160 {
+			halfLife = 480.0
+		} else if s.BloodSugar > 120 {
+			halfLife = 900.0
+		}
+		pull := (s.BloodSugar - 90) * (1 - math.Exp(-0.693/halfLife*dt))
 		s.BloodSugar = ClampVariable(VarBloodSugar, s.BloodSugar-pull)
 		changes = append(changes, StateChange{VarBloodSugar, -pull, "insulin_homeostasis"})
+	}
+
+	// Basal metabolic glucose consumption: the brain and organs consume
+	// glucose continuously (~0.5 mg/dL per minute in our scale).
+	if s.BloodSugar > 60 {
+		basalDrain := 0.5 / 60 * dt
+		s.BloodSugar = ClampVariable(VarBloodSugar, s.BloodSugar-basalDrain)
+		changes = append(changes, StateChange{VarBloodSugar, -basalDrain, "basal_metabolism"})
 	}
 
 	// Glycogen: slow natural depletion during fasting (~0.0005/min)

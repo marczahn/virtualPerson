@@ -83,11 +83,14 @@ func (pb *PromptBuilder) ReactivePrompt(
 	trigger string,
 	recentMemories []memory.EpisodicMemory,
 	distortionContext string,
+	recentThoughts []Thought,
 ) string {
 	var b strings.Builder
 
 	b.WriteString(pb.stateBlock(ps))
 	b.WriteString("\n")
+
+	b.WriteString(pb.thoughtStreamBlock(recentThoughts))
 
 	if trigger != "" {
 		b.WriteString(fmt.Sprintf("Something just shifted: %s\n\n", trigger))
@@ -118,11 +121,14 @@ func (pb *PromptBuilder) SpontaneousPrompt(
 	candidate *ThoughtCandidate,
 	recentMemories []memory.EpisodicMemory,
 	distortionContext string,
+	recentThoughts []Thought,
 ) string {
 	var b strings.Builder
 
 	b.WriteString(pb.stateBlock(ps))
 	b.WriteString("\n")
+
+	b.WriteString(pb.thoughtStreamBlock(recentThoughts))
 
 	if candidate != nil {
 		b.WriteString(fmt.Sprintf("Your mind turns to: %s\n\n", candidate.Prompt))
@@ -194,11 +200,14 @@ func (pb *PromptBuilder) ExternalInputPrompt(
 	input ExternalInput,
 	recentMemories []memory.EpisodicMemory,
 	distortionContext string,
+	recentThoughts []Thought,
 ) string {
 	var b strings.Builder
 
 	b.WriteString(pb.stateBlock(ps))
 	b.WriteString("\n")
+
+	b.WriteString(pb.thoughtStreamBlock(recentThoughts))
 
 	switch input.Type {
 	case InputSpeech:
@@ -298,6 +307,22 @@ func (pb *PromptBuilder) stateBlock(ps *psychology.State) string {
 		b.WriteString("The isolation is unbearable. You're not sure what's real anymore.\n")
 	}
 
+	return b.String()
+}
+
+// thoughtStreamBlock renders recent thoughts so the LLM has continuity
+// with what it was just thinking. Returns empty string if no recent thoughts.
+func (pb *PromptBuilder) thoughtStreamBlock(thoughts []Thought) string {
+	if len(thoughts) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("--- What you've been thinking ---\n")
+	for _, t := range thoughts {
+		b.WriteString(fmt.Sprintf("- %s\n", t.Content))
+	}
+	b.WriteString("\n")
 	return b.String()
 }
 

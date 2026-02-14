@@ -67,7 +67,7 @@ func TestReactivePrompt_ContainsTrigger(t *testing.T) {
 	pb := NewPromptBuilder(2000)
 	ps := &psychology.State{Arousal: 0.8, Valence: -0.3, Energy: 0.5}
 
-	prompt := pb.ReactivePrompt(ps, "arousal changed significantly", nil, "")
+	prompt := pb.ReactivePrompt(ps, "arousal changed significantly", nil, "", nil)
 
 	if !strings.Contains(prompt, "arousal changed significantly") {
 		t.Error("reactive prompt should contain trigger")
@@ -79,7 +79,7 @@ func TestReactivePrompt_ContainsDistortions(t *testing.T) {
 	ps := &psychology.State{Arousal: 0.5}
 	distCtx := DistortionContext([]psychology.Distortion{psychology.Catastrophizing})
 
-	prompt := pb.ReactivePrompt(ps, "test", nil, distCtx)
+	prompt := pb.ReactivePrompt(ps, "test", nil, distCtx, nil)
 
 	if !strings.Contains(prompt, "worst possible outcome") {
 		t.Error("prompt should contain distortion description")
@@ -93,7 +93,7 @@ func TestReactivePrompt_ContainsMemories(t *testing.T) {
 		{Content: "I felt the cold wind on my face"},
 	}
 
-	prompt := pb.ReactivePrompt(ps, "", memories, "")
+	prompt := pb.ReactivePrompt(ps, "", memories, "", nil)
 
 	if !strings.Contains(prompt, "cold wind") {
 		t.Error("prompt should contain memory content")
@@ -186,7 +186,7 @@ func TestSpontaneousPrompt_ContainsCandidate(t *testing.T) {
 		Prompt:   "You are hungry and your stomach is growling.",
 	}
 
-	prompt := pb.SpontaneousPrompt(ps, candidate, nil, "")
+	prompt := pb.SpontaneousPrompt(ps, candidate, nil, "", nil)
 
 	if !strings.Contains(prompt, "stomach is growling") {
 		t.Error("spontaneous prompt should contain candidate prompt")
@@ -198,7 +198,7 @@ func TestExternalInputPrompt_Speech(t *testing.T) {
 	ps := &psychology.State{Arousal: 0.3, Valence: 0.2, Energy: 0.5}
 	input := ExternalInput{Type: InputSpeech, Content: "How are you feeling?"}
 
-	prompt := pb.ExternalInputPrompt(ps, input, nil, "")
+	prompt := pb.ExternalInputPrompt(ps, input, nil, "", nil)
 
 	if !strings.Contains(prompt, "Someone says to you") {
 		t.Error("speech prompt should contain speech framing")
@@ -216,7 +216,7 @@ func TestExternalInputPrompt_Action(t *testing.T) {
 	ps := &psychology.State{Arousal: 0.5, Valence: -0.2, Energy: 0.5}
 	input := ExternalInput{Type: InputAction, Content: "gives you a warm blanket"}
 
-	prompt := pb.ExternalInputPrompt(ps, input, nil, "")
+	prompt := pb.ExternalInputPrompt(ps, input, nil, "", nil)
 
 	if !strings.Contains(prompt, "Someone does this") {
 		t.Error("action prompt should contain action framing")
@@ -234,7 +234,7 @@ func TestExternalInputPrompt_IncludesMemories(t *testing.T) {
 		{Content: "The stranger seemed kind"},
 	}
 
-	prompt := pb.ExternalInputPrompt(ps, input, memories, "")
+	prompt := pb.ExternalInputPrompt(ps, input, memories, "", nil)
 
 	if !strings.Contains(prompt, "stranger seemed kind") {
 		t.Error("prompt should include memory content")
@@ -247,7 +247,7 @@ func TestExternalInputPrompt_IncludesDistortions(t *testing.T) {
 	input := ExternalInput{Type: InputSpeech, Content: "hello"}
 	distCtx := DistortionContext([]psychology.Distortion{psychology.MindReading})
 
-	prompt := pb.ExternalInputPrompt(ps, input, nil, distCtx)
+	prompt := pb.ExternalInputPrompt(ps, input, nil, distCtx, nil)
 
 	if !strings.Contains(prompt, "what others are thinking") {
 		t.Error("prompt should contain distortion description")
@@ -265,5 +265,76 @@ func TestTrimMemories_RespectsLimit(t *testing.T) {
 	trimmed := pb.trimMemories(memories)
 	if len(trimmed) > 10 {
 		t.Errorf("trimmed to %d, expected <= 10", len(trimmed))
+	}
+}
+
+func TestThoughtStreamBlock_Empty(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	got := pb.thoughtStreamBlock(nil)
+	if got != "" {
+		t.Errorf("expected empty string for nil thoughts, got %q", got)
+	}
+}
+
+func TestThoughtStreamBlock_IncludesContent(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	thoughts := []Thought{
+		{Content: "I feel uneasy about this"},
+		{Content: "Maybe it's nothing..."},
+	}
+
+	got := pb.thoughtStreamBlock(thoughts)
+
+	if !strings.Contains(got, "What you've been thinking") {
+		t.Error("should contain section header")
+	}
+	if !strings.Contains(got, "I feel uneasy about this") {
+		t.Error("should contain first thought")
+	}
+	if !strings.Contains(got, "Maybe it's nothing...") {
+		t.Error("should contain second thought")
+	}
+}
+
+func TestReactivePrompt_IncludesRecentThoughts(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Arousal: 0.5}
+	thoughts := []Thought{
+		{Content: "Something feels off today"},
+	}
+
+	prompt := pb.ReactivePrompt(ps, "test", nil, "", thoughts)
+
+	if !strings.Contains(prompt, "Something feels off today") {
+		t.Error("reactive prompt should include recent thoughts")
+	}
+}
+
+func TestExternalInputPrompt_IncludesRecentThoughts(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{}
+	input := ExternalInput{Type: InputSpeech, Content: "hello"}
+	thoughts := []Thought{
+		{Content: "I was just thinking about lunch"},
+	}
+
+	prompt := pb.ExternalInputPrompt(ps, input, nil, "", thoughts)
+
+	if !strings.Contains(prompt, "thinking about lunch") {
+		t.Error("external input prompt should include recent thoughts")
+	}
+}
+
+func TestSpontaneousPrompt_IncludesRecentThoughts(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ps := &psychology.State{Energy: 0.5}
+	thoughts := []Thought{
+		{Content: "The silence is getting to me"},
+	}
+
+	prompt := pb.SpontaneousPrompt(ps, nil, nil, "", thoughts)
+
+	if !strings.Contains(prompt, "silence is getting to me") {
+		t.Error("spontaneous prompt should include recent thoughts")
 	}
 }

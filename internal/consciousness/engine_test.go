@@ -2,6 +2,7 @@ package consciousness
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -292,5 +293,78 @@ func TestEngine_Respond_ContentReachesPrompt(t *testing.T) {
 	}
 	if !strings.Contains(llm.lastUser, "Someone says to you") {
 		t.Errorf("expected speech framing in prompt, got: %s", llm.lastUser)
+	}
+}
+
+func TestEngine_Respond_RecordsRecentThought(t *testing.T) {
+	llm := &mockLLM{response: "Oh, hello there."}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	ps := &psychology.State{Arousal: 0.3, Valence: 0.2, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "Hi"}
+
+	engine.Respond(context.Background(), ps, input)
+
+	recent := engine.RecentThoughts()
+	if len(recent) != 1 {
+		t.Fatalf("expected 1 recent thought, got %d", len(recent))
+	}
+	if recent[0].Content != "Oh, hello there." {
+		t.Errorf("recent thought content = %q, unexpected", recent[0].Content)
+	}
+}
+
+func TestEngine_RecentThoughts_BufferEvicts(t *testing.T) {
+	llm := &mockLLM{response: "thought"}
+	engine := NewEngine(EngineConfig{
+		LLM:               llm,
+		MinCallInterval:    0,
+		MaxRecentThoughts:  3,
+	})
+
+	ps := &psychology.State{Arousal: 0.3, Energy: 0.5}
+	for i := 0; i < 5; i++ {
+		llm.response = fmt.Sprintf("thought %d", i)
+		input := ExternalInput{Type: InputSpeech, Content: "hi"}
+		engine.Respond(context.Background(), ps, input)
+	}
+
+	recent := engine.RecentThoughts()
+	if len(recent) != 3 {
+		t.Fatalf("expected 3 recent thoughts, got %d", len(recent))
+	}
+	// Should have the last 3 thoughts (2, 3, 4).
+	if recent[0].Content != "thought 2" {
+		t.Errorf("oldest thought = %q, expected 'thought 2'", recent[0].Content)
+	}
+	if recent[2].Content != "thought 4" {
+		t.Errorf("newest thought = %q, expected 'thought 4'", recent[2].Content)
+	}
+}
+
+func TestEngine_RecentThoughts_IncludedInPrompt(t *testing.T) {
+	llm := &mockLLM{}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	ps := &psychology.State{Arousal: 0.3, Energy: 0.5}
+
+	// First call.
+	llm.response = "I wonder what's happening."
+	input := ExternalInput{Type: InputSpeech, Content: "hello"}
+	engine.Respond(context.Background(), ps, input)
+
+	// Second call — prompt should include the first thought.
+	llm.response = "Still thinking about it."
+	input = ExternalInput{Type: InputSpeech, Content: "how are you"}
+	engine.Respond(context.Background(), ps, input)
+
+	if !strings.Contains(llm.lastUser, "I wonder what's happening.") {
+		t.Errorf("second prompt should contain first thought, got: %s", llm.lastUser)
 	}
 }

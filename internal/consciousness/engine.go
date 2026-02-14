@@ -26,6 +26,10 @@ type Engine struct {
 	contextSelector *memory.ContextSelector
 	memories        []memory.EpisodicMemory
 
+	// Recent thoughts buffer for thought continuity.
+	recentThoughts []Thought
+	maxRecent      int
+
 	// Rate limiting: minimum interval between LLM calls.
 	minInterval     time.Duration
 	lastCallTime    time.Time
@@ -41,6 +45,7 @@ type EngineConfig struct {
 	Identity            *memory.IdentityCore
 	MaxPromptTokens     int
 	MaxContextMemories  int
+	MaxRecentThoughts   int           // number of recent thoughts to include in prompts (default 5)
 	MinCallInterval     time.Duration // 0 means no rate limit
 	SpontaneousInterval time.Duration // 0 means no rate limit
 }
@@ -53,6 +58,9 @@ func NewEngine(cfg EngineConfig) *Engine {
 	if cfg.MaxContextMemories == 0 {
 		cfg.MaxContextMemories = 5
 	}
+	if cfg.MaxRecentThoughts == 0 {
+		cfg.MaxRecentThoughts = 5
+	}
 	// MinCallInterval and SpontaneousInterval default to 0 (no rate limit).
 	// The simulation loop should set appropriate values for production use.
 
@@ -63,6 +71,7 @@ func NewEngine(cfg EngineConfig) *Engine {
 		queue:               NewThoughtQueue(),
 		identity:            cfg.Identity,
 		contextSelector:     memory.NewContextSelector(cfg.MaxContextMemories),
+		maxRecent:           cfg.MaxRecentThoughts,
 		minInterval:         cfg.MinCallInterval,
 		spontaneousInterval: cfg.SpontaneousInterval,
 	}
@@ -85,7 +94,7 @@ func (e *Engine) React(ctx context.Context, ps *psychology.State, dt float64) (*
 	relevant := e.selectMemories(ps)
 
 	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
-	userMessage := e.promptBuilder.ReactivePrompt(ps, trigger, relevant, distCtx)
+	userMessage := e.promptBuilder.ReactivePrompt(ps, trigger, relevant, distCtx, e.recentThoughts)
 
 	// Update timestamp before the call so failures don't cause retry floods.
 	e.lastCallTime = time.Now()
@@ -99,14 +108,16 @@ func (e *Engine) React(ctx context.Context, ps *psychology.State, dt float64) (*
 
 	feedback := ParseFeedback(response)
 
-	return &Thought{
+	thought := &Thought{
 		Type:      Reactive,
 		Priority:  PriorityPredictionError,
 		Content:   response,
 		Trigger:   trigger,
 		Timestamp: time.Now(),
 		Feedback:  feedback,
-	}, nil
+	}
+	e.recordThought(*thought)
+	return thought, nil
 }
 
 // Spontaneous generates a spontaneous thought if enough time has passed
@@ -130,7 +141,7 @@ func (e *Engine) Spontaneous(ctx context.Context, ps *psychology.State) (*Though
 	relevant := e.selectMemories(ps)
 
 	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
-	userMessage := e.promptBuilder.SpontaneousPrompt(ps, candidate, relevant, distCtx)
+	userMessage := e.promptBuilder.SpontaneousPrompt(ps, candidate, relevant, distCtx, e.recentThoughts)
 
 	// Update timestamps before the call so failures don't cause retry floods.
 	e.lastCallTime = time.Now()
@@ -143,14 +154,16 @@ func (e *Engine) Spontaneous(ctx context.Context, ps *psychology.State) (*Though
 
 	feedback := ParseFeedback(response)
 
-	return &Thought{
+	thought := &Thought{
 		Type:      Spontaneous,
 		Priority:  candidate.Priority,
 		Content:   response,
 		Trigger:   candidate.Category,
 		Timestamp: time.Now(),
 		Feedback:  feedback,
-	}, nil
+	}
+	e.recordThought(*thought)
+	return thought, nil
 }
 
 // Respond generates a conscious thought in response to external communicative
@@ -165,7 +178,7 @@ func (e *Engine) Respond(ctx context.Context, ps *psychology.State, input Extern
 	relevant := e.selectMemories(ps)
 
 	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
-	userMessage := e.promptBuilder.ExternalInputPrompt(ps, input, relevant, distCtx)
+	userMessage := e.promptBuilder.ExternalInputPrompt(ps, input, relevant, distCtx, e.recentThoughts)
 
 	e.lastCallTime = time.Now()
 
@@ -179,13 +192,15 @@ func (e *Engine) Respond(ctx context.Context, ps *psychology.State, input Extern
 	trigger := input.Content
 	feedback := ParseFeedback(response)
 
-	return &Thought{
+	thought := &Thought{
 		Type:      Conversational,
 		Content:   response,
 		Trigger:   trigger,
 		Timestamp: time.Now(),
 		Feedback:  feedback,
-	}, nil
+	}
+	e.recordThought(*thought)
+	return thought, nil
 }
 
 // UpdateMemories refreshes the engine's memory cache.
@@ -210,6 +225,23 @@ func (e *Engine) Salience() *SalienceCalculator {
 
 func (e *Engine) canCall() bool {
 	return time.Since(e.lastCallTime) >= e.minInterval
+}
+
+// recordThought appends a thought to the recent thoughts buffer,
+// evicting the oldest if the buffer is full.
+func (e *Engine) recordThought(t Thought) {
+	if len(e.recentThoughts) >= e.maxRecent {
+		copy(e.recentThoughts, e.recentThoughts[1:])
+		e.recentThoughts = e.recentThoughts[:e.maxRecent-1]
+	}
+	e.recentThoughts = append(e.recentThoughts, t)
+}
+
+// RecentThoughts returns a copy of the recent thought buffer.
+func (e *Engine) RecentThoughts() []Thought {
+	out := make([]Thought, len(e.recentThoughts))
+	copy(out, e.recentThoughts)
+	return out
 }
 
 func (e *Engine) selectMemories(ps *psychology.State) []memory.EpisodicMemory {
