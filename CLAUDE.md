@@ -35,3 +35,88 @@
 - Test behavior, not implementation. Tests should survive refactors.
 - Each test tests one thing. Test names describe the scenario and expected outcome.
 - No test interdependence. Every test must pass in isolation.
+
+## Development Workflow
+
+Every task falls into one of three tiers. Determine the tier before doing anything else.
+
+### Tier classification
+
+| Tier | Criteria |
+|------|----------|
+| **Trivial** | ≤3 line change, single obvious fix, no package boundary crossed, requirements self-evident |
+| **Standard** | Single package, requirements clear, no cross-layer impact |
+| **Complex** | Multi-package, architectural impact, OR ambiguous requirements |
+
+When in doubt, treat the task as one tier higher.
+
+---
+
+### Trivial tasks
+
+1. Implement the fix.
+2. Write or update at least one test covering the changed behavior.
+3. Run `go test ./...`. All tests must pass.
+
+---
+
+### Standard tasks
+
+**Phase 1 — Requirements**
+- State the requirement in one sentence before writing any code.
+- If anything is unclear, ask all questions in one batch. Do not proceed until answers are in.
+
+**Phase 2 — Architecture check**
+- Name the layer(s) affected: Sense / Biology / Psychology / Consciousness / infrastructure.
+- Confirm no layer boundary is violated (dependencies point inward only).
+- If a boundary violation is needed, stop and raise it explicitly before proceeding.
+
+**→ Confirm with user before Phase 3.**
+
+**Phase 3 — TDD implementation**
+- Write failing tests first. Verify they fail before writing any implementation.
+- Implement until tests pass.
+- Run `go test ./...`. All tests must pass.
+
+**Phase 4 — QA check (inline)**
+- For each stated requirement: confirm a test exists that would fail if that requirement were violated.
+- Spot-check code quality: functions do one thing, no layer boundary crossed, no dead code.
+
+---
+
+### Complex tasks
+
+**Phase 1 — Requirements (interactive)**
+- Write a requirements statement: what the system does differently after this change, in plain sentences.
+- Identify affected packages and data flows through the pipeline.
+- Ask all clarifying questions in one batch. Do not proceed until confirmed.
+
+**Phase 2 — Architecture + plan (Plan agent)**
+- Spawn a Plan agent with: the confirmed requirements, affected packages, and relevant codebase context.
+- The agent produces: layer impact analysis, data flow sketch, ADR recommendation (if warranted), and a test case list (scenario + expected outcome per case).
+- If an ADR is warranted, write it in `docs/adr/` before implementation.
+
+**→ Present plan to user. Do not begin Phase 3 until explicitly approved.**
+
+**Phase 3 — TDD implementation**
+- Write failing tests first (from the test case list). Verify they fail.
+- Implement until tests pass.
+- Run `go test ./...`. All tests must pass.
+
+**Phase 4 — QA review (QA agent)**
+- Spawn a QA agent with: the requirements statement, the test case list, and the diff/files changed.
+- The agent checks:
+  - Each requirement has a test that would catch regression
+  - Code quality: single responsibility, naming, no dead code, layer boundaries respected
+  - Edge cases not covered by the listed test cases
+- Address all findings before marking complete.
+
+---
+
+### Hard gates
+
+- No implementation before the requirement is written out (Standard + Complex).
+- No implementation before a failing test exists (Standard + Complex).
+- No implementation before user confirmation (Standard + Complex).
+- No "complete" call while any test fails.
+- If a boundary violation is discovered during implementation, stop and re-plan. Do not route around it.
