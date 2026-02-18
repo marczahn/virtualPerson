@@ -1,0 +1,318 @@
+:root {
+  --bg:           #0d1117;
+  --surface:      #161b22;
+  --surface-2:    #21262d;
+  --border:       #30363d;
+  --text:         #c9d1d9;
+  --text-muted:   #8b949e;
+  --accent:       #58a6ff;
+  --good:         #3fb950;
+  --warn:         #d29922;
+  --danger:       #f85149;
+  --purple:       #bc8cff;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+
+#status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+#status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background 0.3s;
+}
+
+#status-dot.connected    { background: var(--good); }
+#status-dot.disconnected { background: var(--danger); }
+
+/* ── Layout ── */
+main {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+}
+
+/* ── Panels ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.panel-title {
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Threshold alert ── */
+#threshold-alerts {
+  display: none;
+  margin: 8px 12px 0;
+  padding: 8px 10px;
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+#threshold-alerts.active { display: block; }
+
+#threshold-alerts ul {
+  list-style: none;
+  margin-top: 4px;
+}
+
+#threshold-alerts ul li::before {
+  content: "⚠ ";
+}
+
+/* ── Bio groups ── */
+.bio-group {
+  border-bottom: 1px solid var(--border);
+}
+
+.bio-group:last-child { border-bottom: none; }
+
+.bio-group summary {
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--surface-2);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+}
+
+.bio-group summary::-webkit-details-marker { display: none; }
+
+.bio-group summary::before {
+  content: "▶";
+  font-size: 10px;
+  transition: transform 0.2s;
+  color: var(--text-muted);
+}
+
+.bio-group[open] summary::before { transform: rotate(90deg); }
+
+.bio-group-body {
+  padding: 10px 14px;
+}
+
+/* ── Variable legend/checkboxes ── */
+.var-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.var-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  transition: opacity 0.2s;
+}
+
+.var-toggle input[type=checkbox] {
+  width: 10px;
+  height: 10px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.var-toggle .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.var-toggle.hidden-var { opacity: 0.4; }
+
+.chart-wrap {
+  position: relative;
+  height: 140px;
+}
+
+/* ── Psychology panel ── */
+.psych-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.psych-section:last-child { border-bottom: none; }
+
+.psych-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ── Affect bars ── */
+.affect-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 38px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.affect-row:last-child { margin-bottom: 0; }
+
+.affect-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.affect-bar-wrap {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.affect-bar {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
+/* Valence bar: centered at 50%, negative=red, positive=green */
+.valence-bar-wrap {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  position: relative;
+  border: 1px solid var(--border);
+}
+
+.valence-bar-wrap::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+
+.valence-bar {
+  height: 100%;
+  position: absolute;
+  border-radius: 4px;
+  transition: left 0.4s ease, width 0.4s ease, background 0.4s ease;
+}
+
+.affect-value {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Tags (coping / distortions / isolation) ── */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 22px;
+}
+
+.tag {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tag.coping      { border-color: var(--good);   color: var(--good); }
+.tag.distortion  { border-color: var(--danger);  color: var(--danger); }
+.tag.isolation-none          { color: var(--text-muted); }
+.tag.isolation-boredom       { border-color: var(--accent);  color: var(--accent); }
+.tag.isolation-loneliness    { border-color: var(--warn);   color: var(--warn); }
+.tag.isolation-significant   { border-color: var(--warn);   color: var(--warn); }
+.tag.isolation-destabilizing { border-color: var(--danger); color: var(--danger); }
+.tag.isolation-severe        { border-color: var(--danger); color: var(--danger); background: rgba(248,81,73,0.1); }
+
+.empty-label {
+  font-size: 11px;
+  color: var(--border);
+  font-style: italic;
+}
+
+/* ── Big Five radar ── */
+.radar-wrap {
+  position: relative;
+  height: 180px;
+}

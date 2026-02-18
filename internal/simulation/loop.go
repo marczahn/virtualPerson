@@ -66,12 +66,17 @@ type Config struct {
 	Identity *memory.IdentityCore
 
 	// Timing.
-	TickInterval time.Duration // how often the main loop ticks (e.g., 100ms)
-	SimStart     time.Time     // in-world start time
+	TickInterval          time.Duration // how often the main loop ticks (e.g., 100ms)
+	StateSnapshotInterval time.Duration // how often OnStateSnapshot is called (default 2s)
+	SimStart              time.Time     // in-world start time
 
 	// Scenario is the initial physical environment description injected into
 	// the consciousness system prompt. Can be updated at runtime via @text input.
 	Scenario string
+
+	// OnStateSnapshot is called approximately every StateSnapshotInterval with
+	// the current bio and psych states. Nil in non-server mode. Must not block.
+	OnStateSnapshot func(bio *biology.State, psych psychology.State)
 
 	// IO.
 	Input io.Reader // stdin or test reader
@@ -94,12 +99,18 @@ type Loop struct {
 
 	// Tracks active thresholds to avoid displaying the same one every tick.
 	activeThresholds map[thresholdKey]bool
+
+	// lastSnapshot tracks when OnStateSnapshot was last called.
+	lastSnapshot time.Time
 }
 
 // NewLoop creates a simulation loop from the given configuration.
 func NewLoop(cfg Config) *Loop {
 	if cfg.TickInterval == 0 {
 		cfg.TickInterval = 100 * time.Millisecond
+	}
+	if cfg.StateSnapshotInterval == 0 {
+		cfg.StateSnapshotInterval = 2 * time.Second
 	}
 	if cfg.Scenario != "" && cfg.Consciousness != nil {
 		cfg.Consciousness.UpdateScenario(cfg.Scenario)
@@ -167,6 +178,12 @@ func (l *Loop) tick(ctx context.Context) error {
 
 	// 3. Psychology: transform bio → psych state.
 	psychState := l.cfg.PsychProcessor.Process(l.cfg.BioState, dt, 0.5)
+
+	// 3a. Broadcast state snapshot at the configured interval (server mode only).
+	if l.cfg.OnStateSnapshot != nil && time.Since(l.lastSnapshot) >= l.cfg.StateSnapshotInterval {
+		l.cfg.OnStateSnapshot(l.cfg.BioState, psychState)
+		l.lastSnapshot = time.Now()
+	}
 
 	// 4. Consciousness: reactive (salience-gated).
 	reactive, err := l.cfg.Consciousness.React(ctx, &psychState, dt)

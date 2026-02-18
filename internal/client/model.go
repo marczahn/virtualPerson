@@ -176,6 +176,9 @@ func (m *Model) handleSubmit() (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) addThought(msg server.ServerMessage) {
+	if msg.Type != "thought" {
+		return
+	}
 	var line string
 	ts := msg.Timestamp.Format("15:04:05")
 	if msg.Trigger != "" {

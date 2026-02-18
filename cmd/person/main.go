@@ -203,6 +203,7 @@ func run() error {
 	var input io.Reader = os.Stdin
 	var hub *server.Hub
 	var pipeWriter *io.PipeWriter
+	var onStateSnapshot func(bio *biology.State, psych psychology.State)
 
 	if *serverMode {
 		pr, pw := io.Pipe()
@@ -223,23 +224,41 @@ func run() error {
 				Timestamp:   entry.Timestamp,
 			})
 		})
+
+		// Broadcast bio/psych state snapshots to the web dashboard.
+		onStateSnapshot = func(bio *biology.State, psych psychology.State) {
+			bioPayload := server.BioStatePayloadFromState(bio)
+			psychPayload := server.PsychStatePayloadFromState(psych, *personality)
+			now := time.Now()
+			hub.Broadcast(server.ServerMessage{
+				Type:      "bio_state",
+				Timestamp: now,
+				BioState:  &bioPayload,
+			})
+			hub.Broadcast(server.ServerMessage{
+				Type:       "psych_state",
+				Timestamp:  now,
+				PsychState: &psychPayload,
+			})
+		}
 	}
 
 	cfg := simulation.Config{
-		BioProcessor:   biology.NewProcessor(),
-		PsychProcessor: psychology.NewProcessor(*personality),
-		Consciousness:  consciousnessEngine,
-		SenseParser:    sense.NewKeywordParser(),
-		Display:        display,
-		Store:          store,
-		Reviewer:       psychReviewer,
-		Personality:    personality,
-		BioState:       bioState,
-		Identity:       identity,
-		Scenario:       scenario,
-		TickInterval:   100 * time.Millisecond,
-		SimStart:       time.Date(2024, 6, 15, 8, 0, 0, 0, time.Local),
-		Input:          input,
+		BioProcessor:    biology.NewProcessor(),
+		PsychProcessor:  psychology.NewProcessor(*personality),
+		Consciousness:   consciousnessEngine,
+		SenseParser:     sense.NewKeywordParser(),
+		Display:         display,
+		Store:           store,
+		Reviewer:        psychReviewer,
+		Personality:     personality,
+		BioState:        bioState,
+		Identity:        identity,
+		Scenario:        scenario,
+		TickInterval:    100 * time.Millisecond,
+		SimStart:        time.Date(2024, 6, 15, 8, 0, 0, 0, time.Local),
+		Input:           input,
+		OnStateSnapshot: onStateSnapshot,
 	}
 
 	loop := simulation.NewLoop(cfg)

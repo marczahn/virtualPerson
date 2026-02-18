@@ -102,6 +102,58 @@ func TestHandler_ServerBroadcastsToClient(t *testing.T) {
 	}
 }
 
+func TestHandler_StaticFiles_IndexReturns200(t *testing.T) {
+	hub := NewHub(&bytes.Buffer{})
+	srv := httptest.NewServer(NewHandler(hub))
+	defer srv.Close()
+
+	resp, err := srv.Client().Get(srv.URL + "/")
+	if err != nil {
+		t.Fatalf("GET /: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		t.Errorf("GET / status: got %d, want 200", resp.StatusCode)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct == "" {
+		t.Error("expected non-empty Content-Type for /")
+	}
+}
+
+func TestHandler_StaticFiles_JsReturns200(t *testing.T) {
+	hub := NewHub(&bytes.Buffer{})
+	srv := httptest.NewServer(NewHandler(hub))
+	defer srv.Close()
+
+	resp, err := srv.Client().Get(srv.URL + "/dashboard.js")
+	if err != nil {
+		t.Fatalf("GET /dashboard.js: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		t.Errorf("GET /dashboard.js status: got %d, want 200", resp.StatusCode)
+	}
+}
+
+func TestHandler_StaticFiles_MissingFileReturns404(t *testing.T) {
+	hub := NewHub(&bytes.Buffer{})
+	srv := httptest.NewServer(NewHandler(hub))
+	defer srv.Close()
+
+	resp, err := srv.Client().Get(srv.URL + "/nonexistent.xyz")
+	if err != nil {
+		t.Fatalf("GET /nonexistent.xyz: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 404 {
+		t.Errorf("GET /nonexistent.xyz status: got %d, want 404", resp.StatusCode)
+	}
+}
+
 func TestHandler_InvalidMessageIgnored(t *testing.T) {
 	hub := NewHub(&bytes.Buffer{})
 	srv := httptest.NewServer(NewHandler(hub))

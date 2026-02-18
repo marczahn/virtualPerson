@@ -5,6 +5,8 @@ import (
 	"context"
 	"io"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -530,6 +532,150 @@ func TestApplyFeedback_SpeechResponseLandsBiologically(t *testing.T) {
 		t.Errorf("cortisol should be elevated after angry thought, before=%v after=%v",
 			initialCortisol, bioState.Cortisol)
 	}
+}
+
+func TestLoop_OnStateSnapshot_NilIsNoop(t *testing.T) {
+	// A loop with no OnStateSnapshot callback must run without error.
+	var buf bytes.Buffer
+	reader := strings.NewReader("")
+	loop := newTestLoop(reader, &buf)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- loop.Run(ctx) }()
+
+	time.Sleep(150 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("expected nil error with nil OnStateSnapshot, got: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("loop did not shut down within 2 seconds")
+	}
+}
+
+func TestLoop_OnStateSnapshot_CalledAtInterval(t *testing.T) {
+	var buf bytes.Buffer
+	reader := strings.NewReader("")
+
+	var callCount int64
+
+	bioState := ptrBioState(biology.NewDefaultState())
+	personality := psychology.Personality{
+		Openness: 0.5, Conscientiousness: 0.5,
+		Extraversion: 0.5, Agreeableness: 0.5, Neuroticism: 0.5,
+	}
+	identity := &memory.IdentityCore{SelfNarrative: "I am a test person."}
+	consciousnessEngine := consciousness.NewEngine(consciousness.EngineConfig{
+		LLM:                 &mockLLM{response: "ok"},
+		Identity:            identity,
+		MinCallInterval:     0,
+		SpontaneousInterval: 30 * time.Second,
+	})
+
+	cfg := Config{
+		BioProcessor:          biology.NewProcessor(),
+		PsychProcessor:        psychology.NewProcessor(personality),
+		Consciousness:         consciousnessEngine,
+		SenseParser:           sense.NewKeywordParser(),
+		Display:               output.NewDisplay(&buf, false),
+		BioState:              bioState,
+		Identity:              identity,
+		TickInterval:          20 * time.Millisecond,
+		StateSnapshotInterval: 100 * time.Millisecond,
+		SimStart:              time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
+		Input:                 reader,
+		OnStateSnapshot: func(bio *biology.State, psych psychology.State) {
+			atomic.AddInt64(&callCount, 1)
+		},
+	}
+
+	loop := NewLoop(cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- loop.Run(ctx) }()
+
+	// Run for 600ms; at 100ms interval, expect first immediate + ~5 more = ~6 total.
+	time.Sleep(600 * time.Millisecond)
+	cancel()
+	<-done
+
+	count := atomic.LoadInt64(&callCount)
+	if count < 3 {
+		t.Errorf("expected at least 3 snapshot calls in 600ms, got %d", count)
+	}
+	if count > 10 {
+		t.Errorf("expected at most 10 snapshot calls in 600ms (100ms interval), got %d", count)
+	}
+}
+
+func TestLoop_OnStateSnapshot_ReceivesValidBioAndPsychState(t *testing.T) {
+	var buf bytes.Buffer
+	reader := strings.NewReader("")
+
+	bioState := ptrBioState(biology.NewDefaultState())
+	bioState.BodyTemp = 37.2
+
+	personality := psychology.Personality{
+		Openness: 0.5, Conscientiousness: 0.5,
+		Extraversion: 0.5, Agreeableness: 0.5, Neuroticism: 0.5,
+	}
+	identity := &memory.IdentityCore{SelfNarrative: "I am a test person."}
+	consciousnessEngine := consciousness.NewEngine(consciousness.EngineConfig{
+		LLM:                 &mockLLM{response: "ok"},
+		Identity:            identity,
+		MinCallInterval:     0,
+		SpontaneousInterval: 30 * time.Second,
+	})
+
+	type snap struct {
+		bio   biology.State
+		psych psychology.State
+	}
+	received := make(chan snap, 1)
+	var once sync.Once
+
+	cfg := Config{
+		BioProcessor:          biology.NewProcessor(),
+		PsychProcessor:        psychology.NewProcessor(personality),
+		Consciousness:         consciousnessEngine,
+		SenseParser:           sense.NewKeywordParser(),
+		Display:               output.NewDisplay(&buf, false),
+		BioState:              bioState,
+		Identity:              identity,
+		TickInterval:          20 * time.Millisecond,
+		StateSnapshotInterval: 50 * time.Millisecond,
+		SimStart:              time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC),
+		Input:                 reader,
+		OnStateSnapshot: func(bio *biology.State, psych psychology.State) {
+			once.Do(func() {
+				received <- snap{bio: *bio, psych: psych}
+			})
+		},
+	}
+
+	loop := NewLoop(cfg)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- loop.Run(ctx) }()
+
+	select {
+	case s := <-received:
+		if s.bio.BodyTemp < 36.0 || s.bio.BodyTemp > 38.5 {
+			t.Errorf("BodyTemp out of expected range: %v", s.bio.BodyTemp)
+		}
+		if s.psych.Arousal < 0 || s.psych.Arousal > 1 {
+			t.Errorf("Arousal out of [0,1]: %v", s.psych.Arousal)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for snapshot")
+	}
+
+	cancel()
+	<-done
 }
 
 func TestLoop_EnvironmentInput_NoBioOnly(t *testing.T) {
