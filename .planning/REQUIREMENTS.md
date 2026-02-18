@@ -125,53 +125,53 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BIO-01 | — | Pending |
-| BIO-02 | — | Pending |
-| BIO-03 | — | Pending |
-| BIO-04 | — | Pending |
-| BIO-05 | — | Pending |
-| BIO-06 | — | Pending |
-| BIO-07 | — | Pending |
-| MOT-01 | — | Pending |
-| MOT-02 | — | Pending |
-| MOT-03 | — | Pending |
-| MOT-04 | — | Pending |
-| MOT-05 | — | Pending |
-| MOT-06 | — | Pending |
-| MOT-07 | — | Pending |
-| CON-01 | — | Pending |
-| CON-02 | — | Pending |
-| CON-03 | — | Pending |
-| CON-04 | — | Pending |
-| CON-05 | — | Pending |
-| CON-06 | — | Pending |
-| CON-07 | — | Pending |
-| CON-08 | — | Pending |
-| CON-09 | — | Pending |
-| CON-10 | — | Pending |
-| CON-11 | — | Pending |
-| CON-12 | — | Pending |
-| CON-13 | — | Pending |
-| CON-14 | — | Pending |
-| FBK-01 | — | Pending |
-| FBK-02 | — | Pending |
-| FBK-03 | — | Pending |
-| FBK-04 | — | Pending |
-| FBK-05 | — | Pending |
-| FBK-06 | — | Pending |
-| INF-01 | — | Pending |
-| INF-02 | — | Pending |
-| INF-03 | — | Pending |
-| INF-04 | — | Pending |
-| INF-05 | — | Pending |
-| INF-06 | — | Pending |
-| INF-07 | — | Pending |
+| BIO-01 | Phase 1 | Pending |
+| BIO-02 | Phase 1 | Pending |
+| BIO-03 | Phase 1 | Pending |
+| BIO-04 | Phase 1 | Pending |
+| BIO-05 | Phase 1 | Pending |
+| BIO-06 | Phase 1 | Pending |
+| BIO-07 | Phase 1 | Pending |
+| MOT-01 | Phase 2 | Pending |
+| MOT-02 | Phase 2 | Pending |
+| MOT-03 | Phase 2 | Pending |
+| MOT-04 | Phase 2 | Pending |
+| MOT-05 | Phase 2 | Pending |
+| MOT-06 | Phase 2 | Pending |
+| MOT-07 | Phase 2 | Pending |
+| CON-01 | Phase 3 | Pending |
+| CON-02 | Phase 3 | Pending |
+| CON-03 | Phase 3 | Pending |
+| CON-04 | Phase 3 | Pending |
+| CON-05 | Phase 3 | Pending |
+| CON-06 | Phase 3 | Pending |
+| CON-07 | Phase 3 | Pending |
+| CON-08 | Phase 3 | Pending |
+| CON-09 | Phase 3 | Pending |
+| CON-10 | Phase 3 | Pending |
+| CON-11 | Phase 3 | Pending |
+| CON-12 | Phase 3 | Pending |
+| CON-13 | Phase 3 | Pending |
+| CON-14 | Phase 3 | Pending |
+| FBK-01 | Phase 4 | Pending |
+| FBK-02 | Phase 4 | Pending |
+| FBK-03 | Phase 4 | Pending |
+| FBK-04 | Phase 4 | Pending |
+| FBK-05 | Phase 4 | Pending |
+| FBK-06 | Phase 4 | Pending |
+| INF-01 | Phase 5 | Pending |
+| INF-02 | Phase 5 | Pending |
+| INF-03 | Phase 6 | Pending |
+| INF-04 | Phase 6 | Pending |
+| INF-05 | Phase 5 | Pending |
+| INF-06 | Phase 5 | Pending |
+| INF-07 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 35 total
-- Mapped to phases: 0
-- Unmapped: 35
+- v1 requirements: 41 total
+- Mapped to phases: 41
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-19*
-*Last updated: 2026-02-19 after initial definition*
+*Last updated: 2026-02-19 after roadmap creation — all 41 requirements mapped*
