@@ -26,6 +26,9 @@ type Engine struct {
 	contextSelector *memory.ContextSelector
 	memories        []memory.EpisodicMemory
 
+	// Physical environment description included in every system prompt.
+	scenario string
+
 	// Recent thoughts buffer for thought continuity.
 	recentThoughts []Thought
 	maxRecent      int
@@ -43,6 +46,7 @@ type Engine struct {
 type EngineConfig struct {
 	LLM                 LLM
 	Identity            *memory.IdentityCore
+	Scenario            string        // physical environment description; empty means no scenario block
 	MaxPromptTokens     int
 	MaxContextMemories  int
 	MaxRecentThoughts   int           // number of recent thoughts to include in prompts (default 5)
@@ -70,6 +74,7 @@ func NewEngine(cfg EngineConfig) *Engine {
 		salience:            NewSalienceCalculator(),
 		queue:               NewThoughtQueue(),
 		identity:            cfg.Identity,
+		scenario:            cfg.Scenario,
 		contextSelector:     memory.NewContextSelector(cfg.MaxContextMemories),
 		maxRecent:           cfg.MaxRecentThoughts,
 		minInterval:         cfg.MinCallInterval,
@@ -93,7 +98,7 @@ func (e *Engine) React(ctx context.Context, ps *psychology.State, dt float64) (*
 	distCtx := DistortionContext(ps.ActiveDistortions)
 	relevant := e.selectMemories(ps)
 
-	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
+	systemPrompt := e.promptBuilder.SystemPrompt(e.identity, e.scenario)
 	userMessage := e.promptBuilder.ReactivePrompt(ps, trigger, relevant, distCtx, e.recentThoughts)
 
 	// Update timestamp before the call so failures don't cause retry floods.
@@ -106,12 +111,12 @@ func (e *Engine) React(ctx context.Context, ps *psychology.State, dt float64) (*
 
 	e.queue.ExitAbsorption()
 
-	feedback := ParseFeedback(response)
+	feedback, cleanContent := ParseFeedback(response)
 
 	thought := &Thought{
 		Type:      Reactive,
 		Priority:  PriorityPredictionError,
-		Content:   response,
+		Content:   cleanContent,
 		Trigger:   trigger,
 		Timestamp: time.Now(),
 		Feedback:  feedback,
@@ -140,7 +145,7 @@ func (e *Engine) Spontaneous(ctx context.Context, ps *psychology.State) (*Though
 	distCtx := DistortionContext(ps.ActiveDistortions)
 	relevant := e.selectMemories(ps)
 
-	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
+	systemPrompt := e.promptBuilder.SystemPrompt(e.identity, e.scenario)
 	userMessage := e.promptBuilder.SpontaneousPrompt(ps, candidate, relevant, distCtx, e.recentThoughts)
 
 	// Update timestamps before the call so failures don't cause retry floods.
@@ -152,12 +157,12 @@ func (e *Engine) Spontaneous(ctx context.Context, ps *psychology.State) (*Though
 		return nil, fmt.Errorf("spontaneous thought: %w", err)
 	}
 
-	feedback := ParseFeedback(response)
+	feedback, cleanContent := ParseFeedback(response)
 
 	thought := &Thought{
 		Type:      Spontaneous,
 		Priority:  candidate.Priority,
-		Content:   response,
+		Content:   cleanContent,
 		Trigger:   candidate.Category,
 		Timestamp: time.Now(),
 		Feedback:  feedback,
@@ -177,7 +182,7 @@ func (e *Engine) Respond(ctx context.Context, ps *psychology.State, input Extern
 	distCtx := DistortionContext(ps.ActiveDistortions)
 	relevant := e.selectMemories(ps)
 
-	systemPrompt := e.promptBuilder.SystemPrompt(e.identity)
+	systemPrompt := e.promptBuilder.SystemPrompt(e.identity, e.scenario)
 	userMessage := e.promptBuilder.ExternalInputPrompt(ps, input, relevant, distCtx, e.recentThoughts)
 
 	e.lastCallTime = time.Now()
@@ -190,11 +195,11 @@ func (e *Engine) Respond(ctx context.Context, ps *psychology.State, input Extern
 	e.queue.ExitAbsorption()
 
 	trigger := input.Content
-	feedback := ParseFeedback(response)
+	feedback, cleanContent := ParseFeedback(response)
 
 	thought := &Thought{
 		Type:      Conversational,
-		Content:   response,
+		Content:   cleanContent,
 		Trigger:   trigger,
 		Timestamp: time.Now(),
 		Feedback:  feedback,
@@ -211,6 +216,12 @@ func (e *Engine) UpdateMemories(memories []memory.EpisodicMemory) {
 // UpdateIdentity refreshes the identity core.
 func (e *Engine) UpdateIdentity(ic *memory.IdentityCore) {
 	e.identity = ic
+}
+
+// UpdateScenario sets the physical environment description included in all
+// subsequent system prompts. An empty string removes the scenario block.
+func (e *Engine) UpdateScenario(scenario string) {
+	e.scenario = scenario
 }
 
 // Queue returns the thought queue for external manipulation.

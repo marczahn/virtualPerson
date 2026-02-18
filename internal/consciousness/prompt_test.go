@@ -19,7 +19,7 @@ func TestSystemPrompt_ContainsIdentity(t *testing.T) {
 		ValuesCommitments: []string{"honesty above all"},
 	}
 
-	prompt := pb.SystemPrompt(ic)
+	prompt := pb.SystemPrompt(ic, "")
 
 	if !strings.Contains(prompt, "quiet person") {
 		t.Error("system prompt should contain self-narrative")
@@ -40,7 +40,7 @@ func TestSystemPrompt_ContainsIdentity(t *testing.T) {
 
 func TestSystemPrompt_NoIdentity(t *testing.T) {
 	pb := NewPromptBuilder(2000)
-	prompt := pb.SystemPrompt(nil)
+	prompt := pb.SystemPrompt(nil, "")
 
 	if !strings.Contains(prompt, "You are a person") {
 		t.Error("system prompt should contain base consciousness framing")
@@ -53,13 +53,38 @@ func TestSystemPrompt_NoIdentity(t *testing.T) {
 func TestSystemPrompt_NeverRevealsSimulation(t *testing.T) {
 	pb := NewPromptBuilder(2000)
 	ic := &memory.IdentityCore{SelfNarrative: "I exist."}
-	prompt := pb.SystemPrompt(ic)
+	prompt := pb.SystemPrompt(ic, "")
 
 	forbidden := []string{"simulation", "simulated", "LLM", "AI", "artificial", "program", "code"}
 	for _, word := range forbidden {
 		if strings.Contains(strings.ToLower(prompt), word) {
 			t.Errorf("system prompt contains forbidden word %q", word)
 		}
+	}
+}
+
+func TestSystemPrompt_IncludesScenario(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ic := &memory.IdentityCore{SelfNarrative: "I exist."}
+
+	prompt := pb.SystemPrompt(ic, "a small quiet apartment, soft morning light through the curtains")
+
+	if !strings.Contains(prompt, "small quiet apartment") {
+		t.Error("system prompt should contain scenario text")
+	}
+	if !strings.Contains(prompt, "Where you are") {
+		t.Error("system prompt should contain scenario header")
+	}
+}
+
+func TestSystemPrompt_EmptyScenarioOmitsBlock(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ic := &memory.IdentityCore{SelfNarrative: "I exist."}
+
+	prompt := pb.SystemPrompt(ic, "")
+
+	if strings.Contains(prompt, "Where you are") {
+		t.Error("system prompt should not contain scenario header when scenario is empty")
 	}
 }
 
@@ -336,5 +361,28 @@ func TestSpontaneousPrompt_IncludesRecentThoughts(t *testing.T) {
 
 	if !strings.Contains(prompt, "silence is getting to me") {
 		t.Error("spontaneous prompt should include recent thoughts")
+	}
+}
+
+func TestSystemPrompt_ContainsAnnotationInstruction(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ic := &memory.IdentityCore{SelfNarrative: "I exist."}
+	prompt := pb.SystemPrompt(ic, "")
+
+	if !strings.Contains(prompt, "[STATE:") {
+		t.Error("system prompt should contain annotation instruction with [STATE: tag")
+	}
+}
+
+func TestSystemPrompt_NeverRevealsSimulation_StillPasses(t *testing.T) {
+	pb := NewPromptBuilder(2000)
+	ic := &memory.IdentityCore{SelfNarrative: "I exist."}
+	prompt := pb.SystemPrompt(ic, "")
+
+	forbidden := []string{"simulation", "simulated", "LLM", "AI", "artificial", "program", "code"}
+	for _, word := range forbidden {
+		if strings.Contains(strings.ToLower(prompt), word) {
+			t.Errorf("system prompt contains forbidden word %q", word)
+		}
 	}
 }

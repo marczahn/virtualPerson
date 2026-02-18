@@ -345,6 +345,47 @@ func TestEngine_RecentThoughts_BufferEvicts(t *testing.T) {
 	}
 }
 
+func TestEngine_UpdateScenario_AppearsInSystemPrompt(t *testing.T) {
+	llm := &mockLLM{response: "I feel the sun on my face."}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	engine.UpdateScenario("a sunny park bench, birds singing nearby")
+
+	ps := &psychology.State{Arousal: 0.3, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "hello"}
+	_, err := engine.Respond(context.Background(), ps, input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(llm.lastSystem, "sunny park bench") {
+		t.Errorf("system prompt should contain scenario text, got: %s", llm.lastSystem)
+	}
+}
+
+func TestEngine_UpdateScenario_EmptyScenarioOmitsBlock(t *testing.T) {
+	llm := &mockLLM{response: "Quiet."}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	// No scenario set.
+	ps := &psychology.State{Arousal: 0.3, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "hello"}
+	_, err := engine.Respond(context.Background(), ps, input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if strings.Contains(llm.lastSystem, "Where you are") {
+		t.Error("system prompt should not contain scenario block when no scenario set")
+	}
+}
+
 func TestEngine_RecentThoughts_IncludedInPrompt(t *testing.T) {
 	llm := &mockLLM{}
 	engine := NewEngine(EngineConfig{
@@ -366,5 +407,70 @@ func TestEngine_RecentThoughts_IncludedInPrompt(t *testing.T) {
 
 	if !strings.Contains(llm.lastUser, "I wonder what's happening.") {
 		t.Errorf("second prompt should contain first thought, got: %s", llm.lastUser)
+	}
+}
+
+func TestEngine_TagStrippedFromThoughtContent(t *testing.T) {
+	llm := &mockLLM{response: "That made me furious.\n[STATE: arousal=0.9, valence=-0.8]"}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	ps := &psychology.State{Arousal: 0.3, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "you idiot"}
+
+	thought, err := engine.Respond(context.Background(), ps, input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if thought == nil {
+		t.Fatal("expected thought")
+	}
+	if strings.Contains(thought.Content, "[STATE:") {
+		t.Errorf("thought.Content still contains tag: %q", thought.Content)
+	}
+}
+
+func TestEngine_EmotionalStatePopulatedFromTag(t *testing.T) {
+	llm := &mockLLM{response: "That made me furious.\n[STATE: arousal=0.9, valence=-0.8]"}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	ps := &psychology.State{Arousal: 0.3, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "you idiot"}
+
+	thought, err := engine.Respond(context.Background(), ps, input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if thought == nil {
+		t.Fatal("expected thought")
+	}
+	if thought.Feedback.EmotionalState.Arousal != 0.9 {
+		t.Errorf("arousal = %v, expected 0.9", thought.Feedback.EmotionalState.Arousal)
+	}
+	if thought.Feedback.EmotionalState.Valence != -0.8 {
+		t.Errorf("valence = %v, expected -0.8", thought.Feedback.EmotionalState.Valence)
+	}
+}
+
+func TestEngine_TagNotLeakedIntoRecentThoughts(t *testing.T) {
+	llm := &mockLLM{response: "Anger.\n[STATE: arousal=0.9, valence=-0.8]"}
+	engine := NewEngine(EngineConfig{
+		LLM:             llm,
+		MinCallInterval: 0,
+	})
+
+	ps := &psychology.State{Arousal: 0.3, Energy: 0.5}
+	input := ExternalInput{Type: InputSpeech, Content: "hi"}
+	engine.Respond(context.Background(), ps, input)
+
+	for _, t2 := range engine.RecentThoughts() {
+		if strings.Contains(t2.Content, "[STATE:") {
+			t.Errorf("recent thought content leaked tag: %q", t2.Content)
+		}
 	}
 }

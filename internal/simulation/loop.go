@@ -10,6 +10,7 @@ import (
 
 	"github.com/marczahn/person/internal/biology"
 	"github.com/marczahn/person/internal/consciousness"
+	"github.com/marczahn/person/internal/i18n"
 	"github.com/marczahn/person/internal/memory"
 	"github.com/marczahn/person/internal/output"
 	"github.com/marczahn/person/internal/psychology"
@@ -17,17 +18,18 @@ import (
 	"github.com/marczahn/person/internal/sense"
 )
 
-// InputType classifies user input into speech, action, or environment.
+// InputType classifies user input into speech, action, environment, or scenario.
 type InputType int
 
 const (
 	TypeSpeech      InputType = iota // plain text — someone talks to the person
 	TypeAction                       // *text* — someone does something to/near the person
-	TypeEnvironment                  // ~text — environmental change
+	TypeEnvironment                  // ~text — transient environmental event
+	TypeScenario                     // @text — set persistent physical scenario (non-empty body required)
 )
 
-// classifyInput determines the input type from text conventions:
-// *text* → action, ~text → environment, plain text → speech.
+/// classifyInput determines the input type from text conventions:
+// *text* → action, ~text → environment, @text → scenario (non-empty body), plain text → speech.
 func classifyInput(raw string) (InputType, string) {
 	trimmed := strings.TrimSpace(raw)
 	if strings.HasPrefix(trimmed, "*") && strings.HasSuffix(trimmed, "*") && len(trimmed) > 2 {
@@ -35,6 +37,12 @@ func classifyInput(raw string) (InputType, string) {
 	}
 	if strings.HasPrefix(trimmed, "~") {
 		return TypeEnvironment, strings.TrimSpace(trimmed[1:])
+	}
+	if strings.HasPrefix(trimmed, "@") {
+		content := strings.TrimSpace(trimmed[1:])
+		if content != "" {
+			return TypeScenario, content
+		}
 	}
 	return TypeSpeech, trimmed
 }
@@ -61,8 +69,18 @@ type Config struct {
 	TickInterval time.Duration // how often the main loop ticks (e.g., 100ms)
 	SimStart     time.Time     // in-world start time
 
+	// Scenario is the initial physical environment description injected into
+	// the consciousness system prompt. Can be updated at runtime via @text input.
+	Scenario string
+
 	// IO.
 	Input io.Reader // stdin or test reader
+}
+
+// thresholdKey uniquely identifies an active threshold by system and severity.
+type thresholdKey struct {
+	System    string
+	Condition biology.CriticalState
 }
 
 // Loop orchestrates the simulation. It reads input, processes biology,
@@ -73,6 +91,9 @@ type Loop struct {
 
 	// Channel for input events from the reader goroutine.
 	inputCh chan string
+
+	// Tracks active thresholds to avoid displaying the same one every tick.
+	activeThresholds map[thresholdKey]bool
 }
 
 // NewLoop creates a simulation loop from the given configuration.
@@ -80,10 +101,14 @@ func NewLoop(cfg Config) *Loop {
 	if cfg.TickInterval == 0 {
 		cfg.TickInterval = 100 * time.Millisecond
 	}
+	if cfg.Scenario != "" && cfg.Consciousness != nil {
+		cfg.Consciousness.UpdateScenario(cfg.Scenario)
+	}
 	return &Loop{
-		cfg:     cfg,
-		clock:   NewClock(cfg.SimStart),
-		inputCh: make(chan string, 16),
+		cfg:              cfg,
+		clock:            NewClock(cfg.SimStart),
+		inputCh:          make(chan string, 16),
+		activeThresholds: make(map[thresholdKey]bool),
 	}
 }
 
@@ -150,7 +175,7 @@ func (l *Loop) tick(ctx context.Context) error {
 	}
 	if reactive != nil {
 		l.displayThought(reactive, now)
-		l.applyFeedback(reactive, dt)
+		l.applyFeedback(reactive)
 	}
 
 	// 5. Consciousness: spontaneous thought.
@@ -160,7 +185,7 @@ func (l *Loop) tick(ctx context.Context) error {
 	}
 	if spontaneous != nil {
 		l.displayThought(spontaneous, now)
-		l.applyFeedback(spontaneous, dt)
+		l.applyFeedback(spontaneous)
 	}
 
 	// 6. Psychologist reviewer (optional).
@@ -183,6 +208,8 @@ func (l *Loop) processInput(ctx context.Context, now time.Time) {
 				l.processAction(ctx, content, now)
 			case TypeEnvironment:
 				l.processEnvironment(content, now)
+			case TypeScenario:
+				l.processScenario(content, now)
 			}
 		default:
 			return
@@ -194,7 +221,7 @@ func (l *Loop) processInput(ctx context.Context, now time.Time) {
 func (l *Loop) processSpeech(ctx context.Context, content string, now time.Time) {
 	l.cfg.Display.Show(output.Entry{
 		Source:    output.Sense,
-		Message:   fmt.Sprintf("speech: \"%s\"", content),
+		Message:   fmt.Sprintf(i18n.T().CLI.Speech, content),
 		Timestamp: now,
 	})
 
@@ -215,13 +242,14 @@ func (l *Loop) processSpeech(ctx context.Context, content string, now time.Time)
 	}
 	if thought != nil {
 		l.displayThought(thought, now)
-		l.applyFeedback(thought, 0)
+		l.applyFeedback(thought)
 	}
 }
 
 // processAction handles action input — biology effects + consciousness.
 func (l *Loop) processAction(ctx context.Context, content string, now time.Time) {
 	// Actions affect biology through the sensory parser.
+	bio := &i18n.T().Biology
 	events := l.cfg.SenseParser.Parse(content)
 	for _, event := range events {
 		l.cfg.Display.Show(output.Entry{
@@ -233,7 +261,7 @@ func (l *Loop) processAction(ctx context.Context, content string, now time.Time)
 		for _, c := range biology.SignificantChanges(changes) {
 			l.cfg.Display.Show(output.Entry{
 				Source:    output.Bio,
-				Message:   fmt.Sprintf("%s %+.2f (%s)", c.Variable, c.Delta, c.Source),
+				Message:   formatBioChange(bio, c),
 				Timestamp: now,
 			})
 		}
@@ -257,13 +285,14 @@ func (l *Loop) processAction(ctx context.Context, content string, now time.Time)
 	}
 	if thought != nil {
 		l.displayThought(thought, now)
-		l.applyFeedback(thought, 0)
+		l.applyFeedback(thought)
 	}
 }
 
 // processEnvironment handles environmental input — sensory parser only,
 // consciousness reacts via salience as before.
 func (l *Loop) processEnvironment(content string, now time.Time) {
+	bio := &i18n.T().Biology
 	events := l.cfg.SenseParser.Parse(content)
 	for _, event := range events {
 		l.cfg.Display.Show(output.Entry{
@@ -275,11 +304,22 @@ func (l *Loop) processEnvironment(content string, now time.Time) {
 		for _, c := range biology.SignificantChanges(changes) {
 			l.cfg.Display.Show(output.Entry{
 				Source:    output.Bio,
-				Message:   fmt.Sprintf("%s %+.2f (%s)", c.Variable, c.Delta, c.Source),
+				Message:   formatBioChange(bio, c),
 				Timestamp: now,
 			})
 		}
 	}
+}
+
+// processScenario updates the persistent physical environment description in the
+// consciousness engine and acknowledges it to the display.
+func (l *Loop) processScenario(content string, now time.Time) {
+	l.cfg.Consciousness.UpdateScenario(content)
+	l.cfg.Display.Show(output.Entry{
+		Source:    output.Sense,
+		Message:   i18n.T().CLI.ScenarioUpdated,
+		Timestamp: now,
+	})
 }
 
 // runReviewer feeds thoughts to the reviewer and displays any observation.
@@ -317,22 +357,46 @@ func (l *Loop) runReviewer(
 	}
 }
 
+// formatBioChange formats a single biological state change with localized
+// variable name, unit, and source description.
+func formatBioChange(bio *i18n.BiologyTranslations, c biology.StateChange) string {
+	varName := i18n.TranslateBio(bio.Variables, c.Variable.String())
+	unit := bio.Units[c.Variable.String()]
+	source := i18n.TranslateBio(bio.Sources, c.Source)
+	if unit != "" {
+		return fmt.Sprintf("%s %+.2f %s (%s)", varName, c.Delta, unit, source)
+	}
+	return fmt.Sprintf("%s %+.2f (%s)", varName, c.Delta, source)
+}
+
 // displayBioChanges shows significant biological state changes.
 func (l *Loop) displayBioChanges(result biology.TickResult, now time.Time) {
+	bio := &i18n.T().Biology
 	for _, c := range biology.SignificantChanges(result.Changes) {
 		l.cfg.Display.Show(output.Entry{
 			Source:    output.Bio,
-			Message:   fmt.Sprintf("%s %+.2f (%s)", c.Variable, c.Delta, c.Source),
+			Message:   formatBioChange(bio, c),
 			Timestamp: now,
 		})
 	}
+	// Build set of currently active thresholds and display only new ones.
+	current := make(map[thresholdKey]bool, len(result.Thresholds))
 	for _, t := range result.Thresholds {
+		key := thresholdKey{System: t.System, Condition: t.Condition}
+		current[key] = true
+		if l.activeThresholds[key] {
+			continue
+		}
+		condition := i18n.TranslateBio(bio.Conditions, t.Condition.String())
+		system := i18n.TranslateBio(bio.Systems, t.System)
+		desc := i18n.TranslateBio(bio.Thresholds, t.Description)
 		l.cfg.Display.Show(output.Entry{
 			Source:    output.Bio,
-			Message:   fmt.Sprintf("THRESHOLD [%s] %s: %s", t.Condition, t.System, t.Description),
+			Message:   fmt.Sprintf("THRESHOLD [%s] %s: %s", condition, system, desc),
 			Timestamp: now,
 		})
 	}
+	l.activeThresholds = current
 }
 
 // displayThought shows a consciousness thought.
@@ -346,13 +410,16 @@ func (l *Loop) displayThought(thought *consciousness.Thought, now time.Time) {
 	})
 }
 
-// applyFeedback converts consciousness feedback into biological state changes.
-func (l *Loop) applyFeedback(thought *consciousness.Thought, dt float64) {
-	changes := consciousness.FeedbackToChanges(thought.Feedback)
+// applyFeedback converts consciousness feedback into absolute biological state
+// changes. Pulses are one-time events — not dt-scaled — so they apply equally
+// to reactive thoughts (fired during ticks) and conversational responses
+// (fired outside ticks where dt=0 was previously causing zero effect).
+func (l *Loop) applyFeedback(thought *consciousness.Thought) {
+	changes := consciousness.EmotionalPulses(thought.Feedback.EmotionalState)
+	changes = append(changes, consciousness.FeedbackToChanges(thought.Feedback)...)
 	for _, c := range changes {
-		delta := c.Delta * dt
 		current := l.cfg.BioState.Get(c.Variable)
-		l.cfg.BioState.Set(c.Variable, biology.ClampVariable(c.Variable, current+delta))
+		l.cfg.BioState.Set(c.Variable, biology.ClampVariable(c.Variable, current+c.Delta))
 	}
 }
 

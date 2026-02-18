@@ -95,9 +95,17 @@ type Thought struct {
 	Feedback ThoughtFeedback
 }
 
+// EmotionalTag is the machine-readable emotional state the LLM emits at the
+// end of each response. Arousal ∈ [0,1], Valence ∈ [-1,1].
+type EmotionalTag struct {
+	Arousal float64
+	Valence float64
+}
+
 // ThoughtFeedback captures aspects of the thought that should
 // modify the biological state (the consciousness→biology feedback loop).
 type ThoughtFeedback struct {
-	ActiveCoping      []string // coping strategies present in the thought
-	ActiveDistortions []string // cognitive distortions present in the thought
+	ActiveCoping      []string     // coping strategies present in the thought
+	ActiveDistortions []string     // cognitive distortions present in the thought
+	EmotionalState    EmotionalTag // parsed from [STATE: arousal=X, valence=Y] annotation
 }

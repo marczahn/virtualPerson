@@ -9,12 +9,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	anthropic "github.com/anthropics/anthropic-sdk-go"
 	"github.com/marczahn/person/internal/biology"
 	"github.com/marczahn/person/internal/consciousness"
+	"github.com/marczahn/person/internal/i18n"
 	"github.com/marczahn/person/internal/memory"
 	"github.com/marczahn/person/internal/output"
 	"github.com/marczahn/person/internal/psychology"
@@ -28,6 +30,7 @@ type config struct {
 	AnthropicAPIKey string `json:"anthropic_api_key"`
 	Model           string `json:"model"`
 	DBPath          string `json:"db_path"`
+	Lang            string `json:"lang"`
 }
 
 func main() {
@@ -52,11 +55,28 @@ func loadConfig() config {
 }
 
 func run() error {
-	serverMode := flag.Bool("server", false, "run in server mode with WebSocket support")
-	addr := flag.String("addr", ":8080", "server listen address (server mode only)")
+	serverMode    := flag.Bool("server", false, "run in server mode with WebSocket support")
+	addr          := flag.String("addr", ":8080", "server listen address (server mode only)")
+	lang          := flag.String("lang", "", "language code (e.g., en, de)")
+	scenarioFile  := flag.String("scenario-file", "", "path to a text file describing the person's physical environment")
 	flag.Parse()
 
 	fileCfg := loadConfig()
+
+	// Resolve language: flag > env > config > default.
+	langCode := fileCfg.Lang
+	if l := os.Getenv("PERSON_LANG"); l != "" {
+		langCode = l
+	}
+	if *lang != "" {
+		langCode = *lang
+	}
+	if langCode == "" {
+		langCode = "en"
+	}
+	if err := i18n.Load(langCode); err != nil {
+		return fmt.Errorf("load language %q: %w", langCode, err)
+	}
 
 	// Config file values, overridable by env vars.
 	if key := os.Getenv("ANTHROPIC_API_KEY"); key == "" && fileCfg.AnthropicAPIKey != "" {
@@ -91,13 +111,14 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load bio state: %w", err)
 	}
+	tr := i18n.T()
 	if bioState == nil {
 		s := biology.NewDefaultState()
 		bioState = &s
-		fmt.Println("Starting with fresh biological state.")
+		fmt.Println(tr.CLI.FreshState)
 	} else {
 		bioState.LastUpdate = time.Now()
-		fmt.Println("Resumed from saved biological state.")
+		fmt.Println(tr.CLI.ResumedState)
 	}
 
 	// Load or create personality.
@@ -116,7 +137,7 @@ func run() error {
 		if err := store.SavePersonality(personality); err != nil {
 			return fmt.Errorf("save personality: %w", err)
 		}
-		fmt.Println("Created default personality.")
+		fmt.Println(tr.CLI.CreatedPersonality)
 	}
 
 	// Load or create identity core.
@@ -126,24 +147,35 @@ func run() error {
 	}
 	if identity == nil {
 		identity = &memory.IdentityCore{
-			SelfNarrative:     "I'm a person, trying to make sense of the world around me. I think a lot, sometimes too much.",
-			DispositionTraits: []string{"thoughtful", "curious", "sometimes anxious"},
+			SelfNarrative:     tr.Defaults.SelfNarrative,
+			DispositionTraits: tr.Defaults.DispositionTraits,
 			RelationalMarkers: []string{},
 			KeyMemories:       []string{},
-			EmotionalPatterns: []string{"tends to overthink under stress", "finds comfort in routines"},
-			ValuesCommitments: []string{"honesty", "understanding", "being kind"},
+			EmotionalPatterns: tr.Defaults.EmotionalPatterns,
+			ValuesCommitments: tr.Defaults.ValuesCommitments,
 			LastUpdated:       time.Now(),
 		}
 		if err := store.SaveIdentityCore(identity); err != nil {
 			return fmt.Errorf("save identity: %w", err)
 		}
-		fmt.Println("Created default identity.")
+		fmt.Println(tr.CLI.CreatedIdentity)
 	}
 
 	// Load episodic memories for consciousness context.
 	memories, err := store.LoadMemories()
 	if err != nil {
 		return fmt.Errorf("load memories: %w", err)
+	}
+
+	// Load scenario file if provided.
+	var scenario string
+	if *scenarioFile != "" {
+		data, err := os.ReadFile(*scenarioFile)
+		if err != nil {
+			return fmt.Errorf("read scenario file: %w", err)
+		}
+		scenario = strings.TrimSpace(string(data))
+		fmt.Printf(tr.CLI.ScenarioLoaded+"\n", *scenarioFile)
 	}
 
 	// Build components.
@@ -204,6 +236,7 @@ func run() error {
 		Personality:    personality,
 		BioState:       bioState,
 		Identity:       identity,
+		Scenario:       scenario,
 		TickInterval:   100 * time.Millisecond,
 		SimStart:       time.Date(2024, 6, 15, 8, 0, 0, 0, time.Local),
 		Input:          input,
@@ -219,7 +252,7 @@ func run() error {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
-		fmt.Println("\nShutting down...")
+		fmt.Println(tr.CLI.ShuttingDown)
 		cancel()
 	}()
 
@@ -229,7 +262,7 @@ func run() error {
 			Handler: server.NewHandler(hub),
 		}
 		go func() {
-			fmt.Printf("WebSocket server listening on %s\n", *addr)
+			fmt.Printf(tr.CLI.WebSocketListening+"\n", *addr)
 			if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				fmt.Fprintf(os.Stderr, "http server error: %v\n", err)
 			}
@@ -242,8 +275,8 @@ func run() error {
 		}()
 	}
 
-	fmt.Println("Simulation started. Type to interact, Ctrl+C to quit.")
-	fmt.Printf("Using model: %s\n\n", model)
+	fmt.Println(tr.CLI.SimulationStarted)
+	fmt.Printf(tr.CLI.UsingModel+"\n", model)
 
 	return loop.Run(ctx)
 }
