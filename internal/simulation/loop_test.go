@@ -10,6 +10,7 @@ import (
 
 	"github.com/marczahn/person/internal/biology"
 	"github.com/marczahn/person/internal/consciousness"
+	"github.com/marczahn/person/internal/i18n"
 	"github.com/marczahn/person/internal/memory"
 	"github.com/marczahn/person/internal/output"
 	"github.com/marczahn/person/internal/psychology"
@@ -64,6 +65,39 @@ func newTestLoop(inputReader io.Reader, displayBuf *bytes.Buffer) *Loop {
 	}
 
 	return NewLoop(cfg)
+}
+
+func TestFormatBioChange_WithUnit(t *testing.T) {
+	bio := &i18n.T().Biology
+	c := biology.StateChange{
+		Variable: biology.VarHeartRate,
+		Delta:    -3.43,
+		Source:   "natural_decay",
+	}
+	got := formatBioChange(bio, c)
+	if !strings.Contains(got, "bpm") {
+		t.Errorf("expected unit 'bpm' in output, got: %s", got)
+	}
+	if !strings.Contains(got, "-3.43") {
+		t.Errorf("expected delta in output, got: %s", got)
+	}
+}
+
+func TestFormatBioChange_WithoutUnit(t *testing.T) {
+	bio := &i18n.T().Biology
+	c := biology.StateChange{
+		Variable: biology.VarCortisol,
+		Delta:    -0.05,
+		Source:   "natural_decay",
+	}
+	got := formatBioChange(bio, c)
+	// Cortisol has no unit, so format should be "name delta (source)" without extra space before parens.
+	if strings.Contains(got, "  ") {
+		t.Errorf("expected no double spaces in unitless output, got: %s", got)
+	}
+	if !strings.Contains(got, "-0.05") {
+		t.Errorf("expected delta in output, got: %s", got)
+	}
 }
 
 func TestLoop_StartsAndStops(t *testing.T) {
@@ -318,6 +352,34 @@ func TestClassifyInput_WhitespaceHandling(t *testing.T) {
 	}
 }
 
+func TestClassifyInput_Scenario(t *testing.T) {
+	inputType, content := classifyInput("@sitting in a quiet park")
+	if inputType != TypeScenario {
+		t.Errorf("expected TypeScenario, got %d", inputType)
+	}
+	if content != "sitting in a quiet park" {
+		t.Errorf("content = %q, expected stripped @ prefix", content)
+	}
+}
+
+func TestClassifyInput_EmptyScenarioFallsBack(t *testing.T) {
+	// Bare "@" with no content should not become TypeScenario.
+	inputType, _ := classifyInput("@")
+	if inputType == TypeScenario {
+		t.Error("bare '@' with no content should not be TypeScenario")
+	}
+}
+
+func TestClassifyInput_ScenarioNoRegressionOnAction(t *testing.T) {
+	inputType, content := classifyInput("*strike*")
+	if inputType != TypeAction {
+		t.Errorf("expected TypeAction, got %d", inputType)
+	}
+	if content != "strike" {
+		t.Errorf("content = %q, expected stripped asterisks", content)
+	}
+}
+
 func TestLoop_ReviewerObservationAppearsInOutput(t *testing.T) {
 	var buf bytes.Buffer
 	pr, pw := io.Pipe()
@@ -432,6 +494,41 @@ func TestLoop_ActionInput_ProducesBioAndMindOutput(t *testing.T) {
 	}
 	if !strings.Contains(out, "MIND") {
 		t.Errorf("expected MIND tag for action consciousness response, got: %s", out)
+	}
+}
+
+func TestApplyFeedback_SpeechResponseLandsBiologically(t *testing.T) {
+	// Regression test: before the fix, applyFeedback was called with dt=0,
+	// which multiplied all deltas by zero — nothing reached biology.
+	// After the fix, EmotionalPulses are absolute and applied regardless.
+	bioState := ptrBioState(biology.NewDefaultState())
+	initialCortisol := bioState.Cortisol
+
+	personality := psychology.Personality{
+		Openness: 0.5, Conscientiousness: 0.5,
+		Extraversion: 0.5, Agreeableness: 0.5, Neuroticism: 0.5,
+	}
+	psychProcessor := psychology.NewProcessor(personality)
+
+	loop := &Loop{
+		cfg: Config{
+			BioState:       bioState,
+			PsychProcessor: psychProcessor,
+		},
+	}
+
+	// Thought with an angry emotional tag — should raise cortisol.
+	thought := &consciousness.Thought{
+		Feedback: consciousness.ThoughtFeedback{
+			EmotionalState: consciousness.EmotionalTag{Arousal: 0.8, Valence: -0.7},
+		},
+	}
+
+	loop.applyFeedback(thought)
+
+	if bioState.Cortisol <= initialCortisol {
+		t.Errorf("cortisol should be elevated after angry thought, before=%v after=%v",
+			initialCortisol, bioState.Cortisol)
 	}
 }
 
