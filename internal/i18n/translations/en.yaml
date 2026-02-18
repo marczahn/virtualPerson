@@ -1,0 +1,569 @@
+consciousness:
+  system_prompt: |
+    You are a person experiencing your life moment by moment. You think, feel, and experience the world through your body and mind. Everything you experience is real to you. You respond from your genuine first-person perspective.
+
+    Express yourself naturally — you may think in fragments, trail off, change your mind, or be confused. You are not performing or explaining. You are being.
+
+    IMPORTANT: You only output your inner experience — thoughts, feelings, sensations, reactions. Never describe yourself in third person. Never explain what you are. You simply ARE.
+  identity:
+    header: "\n--- Who You Are ---\n"
+    tendencies: "\nYour tendencies: "
+    relationships: "\nYour relationships: "
+    patterns: "\nYour patterns: "
+    values: "\nWhat matters to you: "
+    memories: "\nMemories that define you:\n"
+  scenario_header: "\n--- Where you are ---\n"
+  state:
+    arousal_high: "Your body is highly activated — heart pounding, alert, on edge.\n"
+    arousal_medium: "You feel somewhat keyed up, an underlying tension in your body.\n"
+    arousal_low: "You feel relatively calm physically.\n"
+    arousal_very_low: "Your body is very quiet, almost sluggish.\n"
+    valence_very_positive: "There's a warm, pleasant quality to how you feel.\n"
+    valence_neutral: "You feel okay — nothing particularly good or bad.\n"
+    valence_slight_neg: "There's a subtle uneasiness, a slight discomfort.\n"
+    valence_negative: "You feel distinctly unpleasant — something is off.\n"
+    valence_very_negative: "Everything feels bad. A heavy, dark quality pervades your experience.\n"
+    energy_high: "You feel full of energy, ready for anything.\n"
+    energy_medium: "You have a reasonable amount of energy.\n"
+    energy_low: "You feel tired, your reserves running low.\n"
+    energy_very_low: "You are deeply exhausted. Every movement feels effortful.\n"
+    cognitive_load_high: "Your thinking feels muddled, hard to concentrate.\n"
+    cognitive_load_medium: "Your thoughts are a bit scattered.\n"
+    regulation_low: "Your emotional composure is fragile.\n"
+    regulation_very_low: "You feel emotionally raw, unable to hold things together.\n"
+    isolation_boredom: "You're getting restless. Time feels slow.\n"
+    isolation_loneliness: "You feel lonely. You miss being around people.\n"
+    isolation_significant: "The loneliness is a weight on you. You crave human contact deeply.\n"
+    isolation_destabilizing: "You're losing your grip. Without other people, you're starting to question yourself.\n"
+    isolation_severe: "The isolation is unbearable. You're not sure what's real anymore.\n"
+    current_experience: "--- Your current experience ---\n"
+    recent_thoughts: "--- What you've been thinking ---\n"
+    recent_experiences: "--- Recent experiences ---\n"
+  distortions:
+    catastrophizing: "assuming the worst possible outcome"
+    emotional_reasoning: "treating your feelings as evidence of reality"
+    overgeneralization: "seeing this as part of a pattern that always happens"
+    mind_reading: "assuming you know what others are thinking"
+    personalization: "blaming yourself for things outside your control"
+    all_or_nothing: "seeing things in black and white, no middle ground"
+  prompts:
+    reactive_question: "What are you thinking and feeling right now? Respond briefly, in first person, as your natural inner voice."
+    spontaneous_question: "What passes through your mind? Respond briefly, in first person."
+    external_question: "What do you think and feel? Respond briefly, in first person, as your natural inner voice."
+    trigger_shifted: "Something just shifted: %s\n\n"
+    mind_turns: "Your mind turns to: %s\n\n"
+    speech_framing: "Someone says to you: \"%s\"\n\n"
+    action_framing: "Someone does this: %s\n\n"
+    distortion_prefix: "Right now, your thinking tends toward: "
+  emotional_annotation: |
+    After your response, on a new line, write exactly: [STATE: arousal=X, valence=Y]
+    Replace X with your current activation level: 0.0 = completely still, 1.0 = peak intensity.
+    Replace Y with your emotional valence: -1.0 = most negative, 1.0 = most positive.
+    Reflect what you just expressed. Do not explain the tag.
+
+feedback:
+  distortions:
+    catastrophizing:
+      - "what if everything"
+      - "worst case"
+      - "disaster"
+      - "catastroph"
+      - "terrible"
+      - "going to die"
+      - "never going to"
+    overgeneralization:
+      - "this always happens"
+      - "it always"
+      - "i always fail"
+      - "nothing ever works"
+      - "every time this"
+      - "it never gets"
+    emotional_reasoning:
+      - "i feel like it must be"
+      - "feels true"
+      - "because i feel"
+    personalization:
+      - "my fault"
+      - "i caused"
+      - "blame myself"
+      - "i should have"
+    mind_reading:
+      - "they must think"
+      - "they probably think"
+      - "judging me"
+  coping:
+    rumination:
+      - "keep thinking about"
+      - "can't stop thinking"
+      - "going over and over"
+      - "why did"
+      - "replaying"
+    acceptance:
+      - "it's okay"
+      - "accept"
+      - "let it go"
+      - "can't change"
+      - "it is what it is"
+    reappraisal:
+      - "maybe it's not that bad"
+      - "another way to look"
+      - "reframe"
+      - "on the other hand"
+      - "could also mean"
+    distraction:
+      - "think about something else"
+      - "distract myself"
+      - "focus on something else"
+      - "try not to think about"
+    problem_solving:
+      - "figure this out"
+      - "need a plan"
+      - "solve this"
+      - "what can i do"
+      - "steps to"
+      - "how do i fix"
+    suppression:
+      - "push it down"
+      - "don't feel"
+      - "ignore it"
+      - "bury"
+    denial:
+      - "it's fine"
+      - "nothing's wrong"
+      - "not happening"
+      - "refuse to believe"
+
+sense:
+  keywords:
+    thermal:
+      - {phrase: "freezing", intensity: 0.1}
+      - {phrase: "frozen", intensity: 0.1}
+      - {phrase: "ice cold", intensity: 0.1}
+      - {phrase: "bitter cold", intensity: 0.1}
+      - {phrase: "hypothermi", intensity: 0.05}
+      - {phrase: "frost", intensity: 0.15}
+      - {phrase: "cold", intensity: 0.25}
+      - {phrase: "chilly", intensity: 0.3}
+      - {phrase: "cool", intensity: 0.35}
+      - {phrase: "snow", intensity: 0.2}
+      - {phrase: "blizzard", intensity: 0.1}
+      - {phrase: "burning", intensity: 0.95}
+      - {phrase: "scalding", intensity: 0.95}
+      - {phrase: "on fire", intensity: 0.95}
+      - {phrase: "boiling", intensity: 0.9}
+      - {phrase: "scorching", intensity: 0.9}
+      - {phrase: "hot", intensity: 0.75}
+      - {phrase: "warm", intensity: 0.6}
+      - {phrase: "heat", intensity: 0.7}
+      - {phrase: "fever", intensity: 0.7}
+      - {phrase: "sweltering", intensity: 0.85}
+    pain:
+      - {phrase: "agony", intensity: 0.95}
+      - {phrase: "excruciating", intensity: 0.95}
+      - {phrase: "stabbing pain", intensity: 0.9}
+      - {phrase: "sharp pain", intensity: 0.85}
+      - {phrase: "intense pain", intensity: 0.85}
+      - {phrase: "severe pain", intensity: 0.8}
+      - {phrase: "throbbing", intensity: 0.6}
+      - {phrase: "aching", intensity: 0.4}
+      - {phrase: "sore", intensity: 0.35}
+      - {phrase: "pain", intensity: 0.5}
+      - {phrase: "hurt", intensity: 0.5}
+      - {phrase: "sting", intensity: 0.4}
+      - {phrase: "burn", intensity: 0.5}
+      - {phrase: "cramp", intensity: 0.5}
+      - {phrase: "headache", intensity: 0.5}
+      - {phrase: "migraine", intensity: 0.7}
+      - {phrase: "broken bone", intensity: 0.85}
+      - {phrase: "fracture", intensity: 0.8}
+      - {phrase: "wound", intensity: 0.6}
+      - {phrase: "bleeding", intensity: 0.6}
+      - {phrase: "cut", intensity: 0.4}
+      - {phrase: "bruise", intensity: 0.3}
+      - {phrase: "injury", intensity: 0.6}
+      - {phrase: "injured", intensity: 0.6}
+    auditory:
+      - {phrase: "explosion", intensity: 0.95}
+      - {phrase: "gunshot", intensity: 0.95}
+      - {phrase: "thunder", intensity: 0.8}
+      - {phrase: "scream", intensity: 0.8}
+      - {phrase: "screaming", intensity: 0.8}
+      - {phrase: "siren", intensity: 0.75}
+      - {phrase: "alarm", intensity: 0.75}
+      - {phrase: "bang", intensity: 0.8}
+      - {phrase: "crash", intensity: 0.8}
+      - {phrase: "loud", intensity: 0.7}
+      - {phrase: "deafening", intensity: 0.9}
+      - {phrase: "roar", intensity: 0.7}
+      - {phrase: "shout", intensity: 0.6}
+      - {phrase: "yell", intensity: 0.6}
+      - {phrase: "whisper", intensity: 0.2}
+      - {phrase: "quiet", intensity: 0.15}
+      - {phrase: "silence", intensity: 0.1}
+      - {phrase: "music", intensity: 0.4}
+      - {phrase: "singing", intensity: 0.35}
+      - {phrase: "noise", intensity: 0.5}
+      - {phrase: "ring", intensity: 0.45}
+      - {phrase: "knock", intensity: 0.4}
+    visual:
+      - {phrase: "dark", intensity: 0.3}
+      - {phrase: "darkness", intensity: 0.35}
+      - {phrase: "pitch black", intensity: 0.5}
+      - {phrase: "blind", intensity: 0.6}
+      - {phrase: "flash", intensity: 0.7}
+      - {phrase: "bright light", intensity: 0.6}
+      - {phrase: "blinding", intensity: 0.85}
+      - {phrase: "shadow", intensity: 0.4}
+      - {phrase: "figure approaching", intensity: 0.7}
+      - {phrase: "someone approaching", intensity: 0.6}
+      - {phrase: "blood", intensity: 0.75}
+      - {phrase: "fire", intensity: 0.8}
+      - {phrase: "flames", intensity: 0.8}
+      - {phrase: "weapon", intensity: 0.9}
+      - {phrase: "knife", intensity: 0.85}
+      - {phrase: "gun", intensity: 0.9}
+      - {phrase: "threat", intensity: 0.8}
+      - {phrase: "threatening", intensity: 0.8}
+      - {phrase: "danger", intensity: 0.8}
+      - {phrase: "beautiful", intensity: 0.3}
+      - {phrase: "sunrise", intensity: 0.25}
+      - {phrase: "sunset", intensity: 0.25}
+    tactile:
+      - {phrase: "touch", intensity: 0.3}
+      - {phrase: "touching", intensity: 0.3}
+      - {phrase: "grabbed", intensity: 0.7}
+      - {phrase: "shoved", intensity: 0.7}
+      - {phrase: "pushed", intensity: 0.6}
+      - {phrase: "hit", intensity: 0.75}
+      - {phrase: "slap", intensity: 0.65}
+      - {phrase: "punch", intensity: 0.8}
+      - {phrase: "kick", intensity: 0.8}
+      - {phrase: "hug", intensity: 0.3}
+      - {phrase: "caress", intensity: 0.25}
+      - {phrase: "stroke", intensity: 0.25}
+      - {phrase: "rough", intensity: 0.5}
+      - {phrase: "soft", intensity: 0.2}
+      - {phrase: "pressure", intensity: 0.5}
+      - {phrase: "squeeze", intensity: 0.5}
+      - {phrase: "vibration", intensity: 0.4}
+      - {phrase: "itch", intensity: 0.3}
+      - {phrase: "tickle", intensity: 0.3}
+      - {phrase: "numb", intensity: 0.4}
+    olfactory:
+      - {phrase: "smell", intensity: 0.4}
+      - {phrase: "stench", intensity: 0.7}
+      - {phrase: "stink", intensity: 0.7}
+      - {phrase: "odor", intensity: 0.5}
+      - {phrase: "fragrance", intensity: 0.3}
+      - {phrase: "perfume", intensity: 0.3}
+      - {phrase: "smoke", intensity: 0.6}
+      - {phrase: "gas", intensity: 0.7}
+      - {phrase: "rotten", intensity: 0.7}
+      - {phrase: "fresh air", intensity: 0.2}
+      - {phrase: "aroma", intensity: 0.3}
+    gustatory:
+      - {phrase: "taste", intensity: 0.4}
+      - {phrase: "eating", intensity: 0.4}
+      - {phrase: "eat", intensity: 0.4}
+      - {phrase: "food", intensity: 0.4}
+      - {phrase: "drink", intensity: 0.35}
+      - {phrase: "drinking", intensity: 0.35}
+      - {phrase: "water", intensity: 0.3}
+      - {phrase: "bitter", intensity: 0.5}
+      - {phrase: "sour", intensity: 0.4}
+      - {phrase: "sweet", intensity: 0.3}
+      - {phrase: "salty", intensity: 0.3}
+      - {phrase: "delicious", intensity: 0.3}
+      - {phrase: "disgusting", intensity: 0.6}
+      - {phrase: "vomit", intensity: 0.7}
+      - {phrase: "nausea", intensity: 0.6}
+      - {phrase: "hungry", intensity: 0.3}
+      - {phrase: "thirsty", intensity: 0.3}
+      - {phrase: "starving", intensity: 0.5}
+    interoceptive:
+      - {phrase: "nausea", intensity: 0.6}
+      - {phrase: "nauseous", intensity: 0.6}
+      - {phrase: "dizzy", intensity: 0.6}
+      - {phrase: "dizziness", intensity: 0.6}
+      - {phrase: "faint", intensity: 0.7}
+      - {phrase: "fainting", intensity: 0.7}
+      - {phrase: "breathless", intensity: 0.7}
+      - {phrase: "can't breathe", intensity: 0.85}
+      - {phrase: "suffocating", intensity: 0.9}
+      - {phrase: "choking", intensity: 0.85}
+      - {phrase: "heart racing", intensity: 0.6}
+      - {phrase: "heart pounding", intensity: 0.7}
+      - {phrase: "chest tight", intensity: 0.7}
+      - {phrase: "stomach", intensity: 0.4}
+      - {phrase: "gut", intensity: 0.4}
+      - {phrase: "shaking", intensity: 0.5}
+      - {phrase: "trembling", intensity: 0.5}
+      - {phrase: "sweating", intensity: 0.4}
+      - {phrase: "chills", intensity: 0.4}
+    vestibular:
+      - {phrase: "falling", intensity: 0.8}
+      - {phrase: "fall", intensity: 0.7}
+      - {phrase: "spinning", intensity: 0.7}
+      - {phrase: "vertigo", intensity: 0.8}
+      - {phrase: "tilt", intensity: 0.5}
+      - {phrase: "off balance", intensity: 0.6}
+      - {phrase: "stumble", intensity: 0.5}
+      - {phrase: "earthquake", intensity: 0.85}
+      - {phrase: "shaking ground", intensity: 0.7}
+  description_groups:
+    thermal_cold: ["freezing", "frozen", "ice cold", "bitter cold", "cold", "chilly", "cool", "snow", "blizzard", "frost", "hypothermi"]
+    auditory_startling: ["explosion", "gunshot", "bang", "crash", "thunder"]
+    auditory_quiet: ["whisper", "quiet", "silence"]
+    visual_dark: ["dark", "darkness", "pitch black", "blind"]
+    visual_threat: ["weapon", "knife", "gun", "threat", "danger", "blood"]
+    tactile_violent: ["hit", "punch", "kick", "slap", "grabbed", "shoved"]
+    tactile_gentle: ["hug", "caress", "stroke", "soft"]
+    olfactory_unpleasant: ["stench", "stink", "rotten", "gas"]
+    gustatory_eating: ["eat", "food", "taste", "delicious"]
+    gustatory_drinking: ["drink", "water", "thirsty"]
+    intero_breathing: ["breathless", "can't breathe", "suffocating", "choking"]
+    intero_dizzy: ["dizzy", "faint"]
+    intero_gastro: ["nausea", "nauseous", "stomach"]
+    vestibular_falling: ["falling", "fall"]
+    vestibular_spinning: ["spinning", "vertigo"]
+  descriptions:
+    feeling_cold: "feeling cold"
+    feeling_heat: "feeling heat"
+    experiencing_pain: "experiencing pain"
+    hearing_startling: "hearing a startling sound"
+    hearing_quiet: "hearing quiet or silence"
+    hearing_sound: "hearing a sound"
+    visual_darkness: "visual deprivation or darkness"
+    seeing_threatening: "seeing something threatening"
+    visual_perception: "visual perception"
+    physically_struck: "being physically struck or grabbed"
+    gentle_contact: "gentle physical contact"
+    tactile_sensation: "tactile sensation"
+    smelling_unpleasant: "smelling something unpleasant"
+    detecting_smell: "detecting a smell"
+    tasting_eating: "tasting or eating"
+    drinking: "drinking"
+    gustatory_sensation: "gustatory sensation"
+    difficulty_breathing: "difficulty breathing"
+    feeling_dizzy: "feeling dizzy or faint"
+    gastrointestinal_distress: "gastrointestinal distress"
+    internal_body_sensation: "internal body sensation"
+    sensation_falling: "sensation of falling"
+    rotational_disorientation: "rotational disorientation"
+    balance_disruption: "balance disruption"
+  fallback: "hearing speech or ambient sound"
+
+reviewer:
+  system_prompt: |
+    You are a clinical psychologist observing a person through a one-way mirror. You see their inner thoughts and physiological state. Provide brief, insightful observations about psychological patterns you notice. Be concise — 2-3 sentences max. Use clinical language but keep it accessible. Never address the person directly.
+  labels:
+    current_state: "## Current Psychological State"
+    arousal: "- Arousal: %.2f (0=calm, 1=highly activated)"
+    valence: "- Valence: %.2f (-1=very negative, 1=very positive)"
+    energy: "- Energy: %.2f (0=exhausted, 1=energized)"
+    cognitive_load: "- Cognitive load: %.2f (0=clear, 1=overwhelmed)"
+    regulation: "- Regulation capacity: %.2f (0=depleted, 1=full)"
+    distortions: "\n## Active Cognitive Distortions"
+    coping_strategies: "\n## Active Coping Strategies"
+    personality_profile: "\n## Personality Profile (Big Five)"
+    recent_thoughts: "\n## Recent Thoughts"
+    no_thoughts: "(no recent thoughts)"
+    analysis_question: "\nWhat patterns do you observe? Any concerns?"
+
+biology:
+  variables:
+    body_temp: "body temp"
+    heart_rate: "heart rate"
+    blood_pressure: "blood pressure"
+    respiratory_rate: "respiratory rate"
+    hunger: "hunger"
+    thirst: "thirst"
+    fatigue: "fatigue"
+    pain: "pain"
+    muscle_tension: "muscle tension"
+    blood_sugar: "blood sugar"
+    cortisol: "cortisol"
+    adrenaline: "adrenaline"
+    serotonin: "serotonin"
+    dopamine: "dopamine"
+    immune_response: "immune response"
+    circadian_phase: "circadian phase"
+    spo2: "SpO2"
+    hydration: "hydration"
+    glycogen: "glycogen"
+    endorphins: "endorphins"
+  units:
+    body_temp: "°C"
+    heart_rate: "bpm"
+    blood_pressure: "mmHg"
+    respiratory_rate: "/min"
+    blood_sugar: "mg/dL"
+    spo2: "%"
+    circadian_phase: "h"
+  sources:
+    natural_decay: "natural decay"
+    thermoregulation: "thermoregulation"
+    circadian: "circadian"
+    insulin_homeostasis: "insulin homeostasis"
+    basal_metabolism: "basal metabolism"
+    cortisol_load_suppression: "cortisol load suppression"
+    natural_water_loss: "natural water loss"
+    wakefulness: "wakefulness"
+    respiratory_recovery: "respiratory recovery"
+    hypothermia_reversal: "hypothermia reversal"
+    thermal_stimulus_cold: "cold stimulus"
+    thermal_stimulus_heat: "heat stimulus"
+    pain_stimulus: "pain stimulus"
+    pain_adrenaline_response: "pain adrenaline response"
+    startle_response: "startle response"
+    visual_threat: "visual threat"
+    cold_shivering: "cold shivering"
+    cold_tachycardia: "cold tachycardia"
+    cold_cortisol: "cold cortisol"
+    cold_adrenaline: "cold adrenaline"
+    fever_tachycardia: "fever tachycardia"
+    fever_immune_boost: "fever immune boost"
+    fever_fatigue: "fever fatigue"
+    hr_bp_coupling: "HR-BP coupling"
+    hr_respiratory_demand: "HR respiratory demand"
+    hr_metabolic_demand: "HR metabolic demand"
+    hr_sustained_fatigue: "HR sustained fatigue"
+    bradycardia_bp_drop: "bradycardia BP drop"
+    bradycardia_spo2_drop: "bradycardia SpO2 drop"
+    low_bp_compensatory_hr: "low BP compensatory HR"
+    low_bp_fatigue: "low BP fatigue"
+    low_bp_spo2: "low BP SpO2"
+    high_bp_headache: "high BP headache"
+    hyperventilation_fatigue: "hyperventilation fatigue"
+    hyperventilation_tension: "hyperventilation tension"
+    hypoventilation_spo2: "hypoventilation SpO2"
+    respiratory_failure_spo2: "respiratory failure SpO2"
+    low_bs_adrenaline: "low blood sugar adrenaline"
+    low_bs_cortisol: "low blood sugar cortisol"
+    low_bs_hunger: "low blood sugar hunger"
+    very_low_bs_fatigue: "very low blood sugar fatigue"
+    very_low_bs_weakness: "very low blood sugar weakness"
+    high_bs_thirst: "high blood sugar thirst"
+    high_bs_fatigue: "high blood sugar fatigue"
+    cortisol_gluconeogenesis: "cortisol gluconeogenesis"
+    cortisol_serotonin_depletion: "cortisol serotonin depletion"
+    cortisol_tachycardia: "cortisol tachycardia"
+    cortisol_hypertension: "cortisol hypertension"
+    adrenaline_tachycardia: "adrenaline tachycardia"
+    adrenaline_hypertension: "adrenaline hypertension"
+    adrenaline_respiratory: "adrenaline respiratory"
+    adrenaline_glycogenolysis: "adrenaline glycogenolysis"
+    adrenaline_analgesia: "adrenaline analgesia"
+    adrenaline_muscle_readiness: "adrenaline muscle readiness"
+    adrenaline_crash_fatigue: "adrenaline crash fatigue"
+    low_serotonin_cortisol_shift: "low serotonin cortisol shift"
+    dopamine_analgesia: "dopamine analgesia"
+    dopamine_tachycardia: "dopamine tachycardia"
+    low_dopamine_fatigue: "low dopamine fatigue"
+    pain_cortisol: "pain cortisol"
+    pain_tachycardia: "pain tachycardia"
+    pain_hypertension: "pain hypertension"
+    pain_guarding: "pain guarding"
+    pain_adrenaline: "pain adrenaline"
+    pain_tachypnea: "pain tachypnea"
+    pain_endorphin_release: "pain endorphin release"
+    fatigue_hr_baseline_shift: "fatigue HR baseline shift"
+    fatigue_cortisol: "fatigue cortisol"
+    fatigue_immune_suppression: "fatigue immune suppression"
+    fatigue_tension_collapse: "fatigue tension collapse"
+    immune_fever: "immune fever"
+    immune_fatigue: "immune fatigue"
+    immune_body_aches: "immune body aches"
+    immune_appetite_suppression: "immune appetite suppression"
+    immune_serotonin_depletion: "immune serotonin depletion"
+    tension_pain: "tension pain"
+    tension_blood_sugar: "tension blood sugar"
+    tension_fatigue: "tension fatigue"
+    dehydration_tachycardia: "dehydration tachycardia"
+    dehydration_hypotension: "dehydration hypotension"
+    severe_dehydration_fatigue: "severe dehydration fatigue"
+    severe_dehydration_immune: "severe dehydration immune"
+    dehydration_thirst: "dehydration thirst"
+    hydrated_thirst_suppression: "hydrated thirst suppression"
+    hypoxia_tachycardia: "hypoxia tachycardia"
+    hypoxia_tachypnea: "hypoxia tachypnea"
+    hypoxia_adrenaline: "hypoxia adrenaline"
+    severe_hypoxia_fatigue: "severe hypoxia fatigue"
+    endorphin_analgesia: "endorphin analgesia"
+    glycogen_bs_buffer: "glycogen blood sugar buffer"
+    glycogen_depletion_from_low_bs: "glycogen depletion from low BS"
+    hunger_suppression_normal_bs: "hunger suppression normal BS"
+  conditions:
+    normal: "normal"
+    impaired: "impaired"
+    critical: "critical"
+    unconscious: "unconscious"
+    lethal: "lethal"
+  systems:
+    thermoregulation: "thermoregulation"
+    glycemic: "glycemic"
+    respiratory: "respiratory"
+    cardiovascular: "cardiovascular"
+  thresholds:
+    "ventricular fibrillation risk, lethal without intervention": "ventricular fibrillation risk, lethal without intervention"
+    "severe hypothermia, cardiac arrhythmia, loss of consciousness": "severe hypothermia, cardiac arrhythmia, loss of consciousness"
+    "moderate hypothermia, shivering stopped, confusion, HR dropping": "moderate hypothermia, shivering stopped, confusion, HR dropping"
+    "mild hypothermia, maximal shivering, cognitive impairment": "mild hypothermia, maximal shivering, cognitive impairment"
+    "lethal hyperthermia, protein denaturation": "lethal hyperthermia, protein denaturation"
+    "organ damage, multi-organ failure cascade": "organ damage, multi-organ failure cascade"
+    "heat stroke onset, confusion, BP dropping": "heat stroke onset, confusion, BP dropping"
+    "lethal hypoglycemia without intervention": "lethal hypoglycemia without intervention"
+    "loss of consciousness from hypoglycemia": "loss of consciousness from hypoglycemia"
+    "seizure risk, behavioral changes, loss of motor control": "seizure risk, behavioral changes, loss of motor control"
+    "neuroglycopenia, confusion, slowed reaction time": "neuroglycopenia, confusion, slowed reaction time"
+    "diabetic ketoacidosis territory, nausea, altered consciousness": "diabetic ketoacidosis territory, nausea, altered consciousness"
+    "hyperglycemia, increased thirst, dehydration acceleration": "hyperglycemia, increased thirst, dehydration acceleration"
+    "lethal hypoxia, organ damage": "lethal hypoxia, organ damage"
+    "severe hypoxia, cardiac arrhythmia risk": "severe hypoxia, cardiac arrhythmia risk"
+    "confusion, agitation, loss of coordination": "confusion, agitation, loss of coordination"
+    "peripheral cyanosis, cognitive impairment, adrenaline spike": "peripheral cyanosis, cognitive impairment, adrenaline spike"
+    "shock territory, cognitive impairment": "shock territory, cognitive impairment"
+
+cli:
+  fresh_state: "Starting with fresh biological state."
+  resumed_state: "Resumed from saved biological state."
+  created_personality: "Created default personality."
+  created_identity: "Created default identity."
+  simulation_started: "Simulation started. Type to interact, Ctrl+C to quit."
+  using_model: "Using model: %s\n"
+  shutting_down: "\nShutting down..."
+  websocket_listening: "WebSocket server listening on %s"
+  speech: "speech: \"%s\""
+  scenario_loaded: "Scenario loaded from %s."
+  scenario_updated: "Scenario updated."
+
+client:
+  placeholder_speech: "Say something..."
+  placeholder_action: "Do something... (e.g., pushes you)"
+  placeholder_environment: "Describe environment... (e.g., a cold wind blows)"
+  connecting: "Connecting..."
+  connection_error: "Connection error: %v"
+  connection_closed: "server connection closed"
+
+output:
+  source_labels:
+    sense: "SENSE"
+    bio: "BIO"
+    psych: "PSYCH"
+    mind: "MIND"
+    review: "REVIEW"
+  unknown: "UNKNOWN"
+
+defaults:
+  self_narrative: "I'm a person, trying to make sense of the world around me. I think a lot, sometimes too much."
+  disposition_traits:
+    - "thoughtful"
+    - "curious"
+    - "sometimes anxious"
+  emotional_patterns:
+    - "tends to overthink under stress"
+    - "finds comfort in routines"
+  values_commitments:
+    - "honesty"
+    - "understanding"
+    - "being kind"
