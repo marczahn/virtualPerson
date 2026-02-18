@@ -1,6 +1,18 @@
 package output
 
-import "testing"
+import (
+	"os"
+	"testing"
+
+	"github.com/marczahn/person/internal/i18n"
+)
+
+func TestMain(m *testing.M) {
+	if err := i18n.Load("en"); err != nil {
+		panic(err)
+	}
+	os.Exit(m.Run())
+}
 
 func TestSource_String_AllValues(t *testing.T) {
 	tests := []struct {
@@ -26,11 +38,5 @@ func TestSource_String_OutOfRange(t *testing.T) {
 	got := Source(99).String()
 	if got != "UNKNOWN" {
 		t.Errorf("Source(99).String() = %q, want %q", got, "UNKNOWN")
-	}
-}
-
-func TestSource_EnumCount(t *testing.T) {
-	if len(sourceLabels) != int(Review)+1 {
-		t.Errorf("sourceLabels has %d entries, expected %d", len(sourceLabels), int(Review)+1)
 	}
 }

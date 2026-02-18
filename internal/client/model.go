@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/marczahn/person/internal/i18n"
 	"github.com/marczahn/person/internal/server"
 )
 
@@ -62,7 +63,7 @@ type Model struct {
 // NewModel creates a new TUI model connected to the given server connection.
 func NewModel(ctx context.Context, conn *Connection) Model {
 	ti := textinput.New()
-	ti.Placeholder = "Say something..."
+	ti.Placeholder = i18n.T().Client.PlaceholderSpeech
 	ti.Focus()
 
 	return Model{
@@ -136,10 +137,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the TUI.
 func (m Model) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("Connection error: %v\n", m.err)
+		return fmt.Sprintf(i18n.T().Client.ConnectionError+"\n", m.err)
 	}
 	if !m.ready {
-		return "Connecting...\n"
+		return i18n.T().Client.Connecting + "\n"
 	}
 
 	divider := dividerStyle.Render(strings.Repeat("─", m.width))
@@ -205,13 +206,14 @@ func (m *Model) refreshViewport() {
 }
 
 func (m *Model) updatePlaceholder() {
+	tr := i18n.T()
 	switch m.mode {
 	case modeSpeech:
-		m.input.Placeholder = "Say something..."
+		m.input.Placeholder = tr.Client.PlaceholderSpeech
 	case modeAction:
-		m.input.Placeholder = "Do something... (e.g., pushes you)"
+		m.input.Placeholder = tr.Client.PlaceholderAction
 	case modeEnvironment:
-		m.input.Placeholder = "Describe environment... (e.g., a cold wind blows)"
+		m.input.Placeholder = tr.Client.PlaceholderEnvironment
 	}
 }
 
@@ -219,7 +221,7 @@ func (m Model) waitForMessage() tea.Cmd {
 	return func() tea.Msg {
 		msg, ok := <-m.conn.Messages()
 		if !ok {
-			return errMsg{err: fmt.Errorf("server connection closed")}
+			return errMsg{err: fmt.Errorf("%s", i18n.T().Client.ConnectionClosed)}
 		}
 		return serverMsg(msg)
 	}

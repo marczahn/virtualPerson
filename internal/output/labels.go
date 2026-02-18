@@ -1,6 +1,10 @@
 package output
 
-import "time"
+import (
+	"time"
+
+	"github.com/marczahn/person/internal/i18n"
+)
 
 // Source identifies which layer produced an output entry.
 type Source int
@@ -13,19 +17,22 @@ const (
 	Review               // psychologist reviewer notes
 )
 
-var sourceLabels = [...]string{
-	"SENSE",
-	"BIO",
-	"PSYCH",
-	"MIND",
-	"REVIEW",
-}
-
 func (s Source) String() string {
-	if int(s) < len(sourceLabels) {
-		return sourceLabels[s]
+	tr := i18n.T()
+	switch s {
+	case Sense:
+		return tr.Output.SourceLabels.Sense
+	case Bio:
+		return tr.Output.SourceLabels.Bio
+	case Psych:
+		return tr.Output.SourceLabels.Psych
+	case Mind:
+		return tr.Output.SourceLabels.Mind
+	case Review:
+		return tr.Output.SourceLabels.Review
+	default:
+		return tr.Output.Unknown
 	}
-	return "UNKNOWN"
 }
 
 // Entry is a single line of output from any layer of the simulation.

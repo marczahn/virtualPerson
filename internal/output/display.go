@@ -80,13 +80,14 @@ func (d *Display) ShowThought(entry Entry) {
 
 	ts := entry.Timestamp.Format("15:04:05")
 
+	mindLabel := Mind.String()
 	if d.useColor {
 		fmt.Fprintf(d.writer, "%s%s%s %s[%-6s]%s %s\n",
 			colorGray, ts, colorReset,
-			colorGreen, "MIND", colorReset,
+			colorGreen, mindLabel, colorReset,
 			entry.Message)
 	} else {
-		fmt.Fprintf(d.writer, "%s [%-6s] %s\n", ts, "MIND", entry.Message)
+		fmt.Fprintf(d.writer, "%s [%-6s] %s\n", ts, mindLabel, entry.Message)
 	}
 
 	if d.listener != nil {

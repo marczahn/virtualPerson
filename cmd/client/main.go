@@ -10,6 +10,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/marczahn/person/internal/client"
+	"github.com/marczahn/person/internal/i18n"
 )
 
 func main() {
@@ -21,7 +22,20 @@ func main() {
 
 func run() error {
 	serverURL := flag.String("server", "ws://localhost:8080/ws", "WebSocket server URL")
+	lang := flag.String("lang", "", "language code (e.g., en, de)")
 	flag.Parse()
+
+	// Resolve language: flag > env > default.
+	langCode := "en"
+	if l := os.Getenv("PERSON_LANG"); l != "" {
+		langCode = l
+	}
+	if *lang != "" {
+		langCode = *lang
+	}
+	if err := i18n.Load(langCode); err != nil {
+		return fmt.Errorf("load language %q: %w", langCode, err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
