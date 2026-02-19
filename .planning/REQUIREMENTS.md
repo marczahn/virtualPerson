@@ -11,8 +11,8 @@ Requirements for initial V2 release. Each maps to roadmap phases.
 
 - [x] **BIO-01**: Bio model reduced to 8-10 motivationally-relevant variables (energy, stress, cognitive capacity, mood, physical tension, hunger/satiation, social deficit, body temperature)
 - [x] **BIO-02**: Every bio variable connects to at least one drive in the motivation system
-- [ ] **BIO-03**: Bio variables decay toward degraded states without engagement (slow-path degradation that accumulates over time)
-- [ ] **BIO-04**: Slow-path degradation rates exceed homeostasis recovery rates when needs go unmet
+- [x] **BIO-03**: Bio variables decay toward degraded states without engagement (slow-path degradation that accumulates over time)
+- [x] **BIO-04**: Slow-path degradation rates exceed homeostasis recovery rates when needs go unmet
 - [ ] **BIO-05**: Gaussian noise applied to bio state each tick to prevent deterministic stagnation
 - [x] **BIO-06**: Bio state clamped within valid ranges per variable
 - [ ] **BIO-07**: Threshold system detects critical bio conditions and surfaces them
@@ -127,8 +127,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | BIO-01 | Phase 1 | Complete |
 | BIO-02 | Phase 1 | Complete |
-| BIO-03 | Phase 1 | Pending |
-| BIO-04 | Phase 1 | Pending |
+| BIO-03 | Phase 1 | Complete |
+| BIO-04 | Phase 1 | Complete |
 | BIO-05 | Phase 1 | Pending |
 | BIO-06 | Phase 1 | Complete |
 | BIO-07 | Phase 1 | Pending |
