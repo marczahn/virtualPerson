@@ -15,7 +15,7 @@ Requirements for initial V2 release. Each maps to roadmap phases.
 - [x] **BIO-04**: Slow-path degradation rates exceed homeostasis recovery rates when needs go unmet
 - [ ] **BIO-05**: Gaussian noise applied to bio state each tick to prevent deterministic stagnation
 - [x] **BIO-06**: Bio state clamped within valid ranges per variable
-- [ ] **BIO-07**: Threshold system detects critical bio conditions and surfaces them
+- [x] **BIO-07**: Threshold system detects critical bio conditions and surfaces them
 
 ### Motivation
 
@@ -131,7 +131,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BIO-04 | Phase 1 | Complete |
 | BIO-05 | Phase 1 | Pending |
 | BIO-06 | Phase 1 | Complete |
-| BIO-07 | Phase 1 | Pending |
+| BIO-07 | Phase 1 | Complete |
 | MOT-01 | Phase 2 | Pending |
 | MOT-02 | Phase 2 | Pending |
 | MOT-03 | Phase 2 | Pending |
