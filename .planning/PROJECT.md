@@ -82,8 +82,9 @@ The LLM can modulate/override drives — a motivated person can push through fat
 
 ## Constraints
 
-- **Tech stack**: Go 1.24, SQLite (modernc.org/sqlite, no CGO), Claude API (anthropic-sdk-go) — same as v1
+- **Tech stack**: Go 1.25 target, SQLite (modernc.org/sqlite, no CGO), Claude API (anthropic-sdk-go)
 - **Code lives in `v2/`**: Clean rebuild, no code sharing with v1 (v1 stays as reference in `v1/`)
+- **Directory boundary target**: New implementation work goes into `v2/internal/...` packages. Existing `v2/bio` code is accepted as current baseline and must be migrated deliberately (not rewritten from scratch).
 - **Maintainability over cleverness**: Clear code, strict separation of concerns, every module has one job. Prefer readable over "smart."
 - **Minimal dependencies**: Standard library where possible, justify every external dep
 - **Testability**: Every behavior-changing component needs tests. Test behavior, not implementation.
@@ -94,6 +95,9 @@ The LLM can modulate/override drives — a motivated person can push through fat
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Clean rebuild in v2/ | V1's architecture was optimized for bio-fidelity, not motivation. Rebuilding avoids carrying over legacy patterns that don't serve v2's goals. | — Pending |
+| Continue from implemented code state | Repository already contains completed Phase 1 artifacts; replaying completed plans wastes effort and risks divergence. | Accepted (2026-02-19) |
+| Use `internal` package layout for new work | Enforces layer boundaries and avoids accidental cross-package coupling as v2 grows. | Accepted (2026-02-19) |
+| Raise toolchain target to Go 1.25 | Aligns with latest language/runtime improvements while staying on stdlib-first approach. | Accepted (2026-02-19, environment permitting) |
 | Replace Big Five with 7 motivation-serving personality factors | Big Five modulated affect dimensions but didn't directly drive behavior. New factors (stress sensitivity, curiosity, patience, etc.) map directly to how the person acts. | — Pending |
 | Reduce bio model to ~8-10 vars | 20 vars created complexity without proportional behavioral value. Keep only vars that feed the motivation system meaningfully. | — Pending |
 | Hybrid motivation (code + LLM) | Pure algorithmic motivation = scripted. Pure LLM motivation = unreliable. Hybrid: code creates pressure, LLM decides what to do with it. | — Pending |
@@ -101,4 +105,4 @@ The LLM can modulate/override drives — a motivated person can push through fat
 | Psychologist reviewer at 3-min intervals | Reduced from v1's 60s to 180s. Still valuable as meta-observer but less frequent to reduce API costs. | — Pending |
 
 ---
-*Last updated: 2026-02-18 after initialization*
+*Last updated: 2026-02-19 after planning sync*

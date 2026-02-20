@@ -1,0 +1,10 @@
+{
+  "permission": {
+    "read": {
+      "/home/marczahn/dev/person/.opencode/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "/home/marczahn/dev/person/.opencode/get-shit-done/*": "allow"
+    }
+  }
+}

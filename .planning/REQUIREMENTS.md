@@ -19,39 +19,39 @@ Requirements for initial V2 release. Each maps to roadmap phases.
 
 ### Motivation
 
-- [ ] **MOT-01**: 5 core drives computed from bio state: energy, social connection, stimulation/novelty, safety, identity coherence
-- [ ] **MOT-02**: Drive urgency is a scalar (0-1) that rises without satisfaction
-- [ ] **MOT-03**: 7 personality factors modulate drive sensitivity as multipliers: stress sensitivity, energy resilience, curiosity, self-observation, patience/frustration tolerance, risk aversion, social factor
-- [ ] **MOT-04**: Personality multipliers applied exactly once (in motivation processor), not duplicated across layers
-- [ ] **MOT-05**: Motivation processor is a pure function: Compute(bio, personality, chronic) returns MotivationState with no side effects
-- [ ] **MOT-06**: Active goal selected from highest-urgency drive
-- [ ] **MOT-07**: Action candidates generated for the active goal
+- [x] **MOT-01**: 5 core drives are computed from bio state via explicit formulas: energy, social connection, stimulation/novelty, safety, identity coherence
+- [x] **MOT-02**: Each drive urgency is a scalar in [0,1] and monotonic with unmet need severity at fixed personality
+- [x] **MOT-03**: 7 personality factors modulate drive sensitivity as multipliers: stress sensitivity, energy resilience, curiosity, self-observation, patience/frustration tolerance, risk aversion, social factor
+- [x] **MOT-04**: Personality multipliers are applied exactly once in motivation computation; downstream layers consume outputs, not re-apply multipliers
+- [x] **MOT-05**: Motivation processor is deterministic and side-effect free: `Compute(bio, personality, chronic) MotivationState` uses no RNG, time, I/O, env, or network
+- [x] **MOT-06**: Active goal is selected from highest-urgency drive with deterministic tie-break order
+- [x] **MOT-07**: Action candidates are generated from active goal and current constraints using pure rule logic (no LLM dependency)
 
 ### Consciousness
 
-- [ ] **CON-01**: Drive intensities translated to phenomenological language in prompts (felt experience, never raw numbers)
-- [ ] **CON-02**: Only top 1-2 drives injected as primary prompt context; lower drives as background texture
-- [ ] **CON-03**: Active goal framed as implicit pull ("find something to eat"), not command ("GOAL: hunger")
-- [ ] **CON-04**: LLM output parsed for [STATE: arousal=X, valence=Y] tag (carried from V1)
-- [ ] **CON-05**: LLM output parsed for [ACTION: type] tag — what the person tries to do
-- [ ] **CON-06**: LLM output parsed for [DRIVE: name=value] tag — optional drive perception override
-- [ ] **CON-07**: All tags stripped from narrative content before display/storage
-- [ ] **CON-08**: Defensive parsing with fallback to prior known-good state on malformed/missing tags
-- [ ] **CON-09**: Action execution gated by environment — action fails if environment doesn't allow it
-- [ ] **CON-10**: Failed actions leave drives unsatisfied (drive compounds)
-- [ ] **CON-11**: Drive overrides clamped: effective_drive = max(raw_drive * 0.5, llm_reported_drive)
-- [ ] **CON-12**: Spontaneous thought system fires on a ticker, drive-weighted (high-urgency drives dominate thought selection)
-- [ ] **CON-13**: Spontaneous thoughts fire even at baseline bio state (associative drift category always available)
-- [ ] **CON-14**: Thought continuity buffer included in all prompts (recent thought history)
+- [x] **CON-01**: Drive intensities translated to phenomenological language in prompts (felt experience, never raw numbers)
+- [x] **CON-02**: Only top 1-2 drives injected as primary prompt context; lower drives as background texture
+- [x] **CON-03**: Active goal framed as implicit pull ("find something to eat"), not command ("GOAL: hunger")
+- [x] **CON-04**: LLM output parsed for [STATE: arousal=X, valence=Y] tag (carried from V1)
+- [x] **CON-05**: LLM output parsed for [ACTION: type] tag — what the person tries to do
+- [x] **CON-06**: LLM output parsed for [DRIVE: name=value] tag — optional drive perception override
+- [x] **CON-07**: All tags stripped from narrative content before display/storage
+- [x] **CON-08**: Defensive parsing with fallback to prior known-good state on malformed/missing tags
+- [x] **CON-09**: Action execution gated by environment — action fails if environment doesn't allow it
+- [x] **CON-10**: Failed actions leave drives unsatisfied (drive compounds)
+- [x] **CON-11**: Drive overrides clamped: effective_drive = max(raw_drive * 0.5, llm_reported_drive)
+- [x] **CON-12**: Spontaneous thought system fires on a ticker, drive-weighted (high-urgency drives dominate thought selection)
+- [x] **CON-13**: Spontaneous thoughts fire even at baseline bio state (associative drift category always available)
+- [x] **CON-14**: Thought continuity buffer included in all prompts (recent thought history)
 
 ### Feedback Loop
 
-- [ ] **FBK-01**: Emotional pulse path: [STATE] arousal/valence → calibrated bio changes (absolute pulses, not dt-scaled)
-- [ ] **FBK-02**: Action execution path: successful [ACTION] → bio state changes (e.g., eat → hunger reduction)
-- [ ] **FBK-03**: Drive override path: [DRIVE] → clamped perception update for next tick
-- [ ] **FBK-04**: Action effects have cooldowns (e.g., eat cannot fire again for N seconds)
-- [ ] **FBK-05**: Bio changes from feedback applied at end of tick, not mid-tick
-- [ ] **FBK-06**: Type distinction between BioRate (per-tick, dt-multiplied) and BioPulse (one-time, not dt-multiplied)
+- [x] **FBK-01**: Emotional pulse path: [STATE] arousal/valence → calibrated bio changes (absolute pulses, not dt-scaled)
+- [x] **FBK-02**: Action execution path: successful [ACTION] → bio state changes (e.g., eat → hunger reduction)
+- [x] **FBK-03**: Drive override path: [DRIVE] → clamped perception update for next tick
+- [x] **FBK-04**: Action effects have cooldowns (e.g., eat cannot fire again for N seconds)
+- [x] **FBK-05**: Bio changes from feedback applied at end of tick, not mid-tick
+- [x] **FBK-06**: Type distinction between BioRate (per-tick, dt-multiplied) and BioPulse (one-time, not dt-multiplied)
 
 ### Infrastructure
 
@@ -132,33 +132,33 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BIO-05 | Phase 1 | Pending |
 | BIO-06 | Phase 1 | Complete |
 | BIO-07 | Phase 1 | Complete |
-| MOT-01 | Phase 2 | Pending |
-| MOT-02 | Phase 2 | Pending |
-| MOT-03 | Phase 2 | Pending |
-| MOT-04 | Phase 2 | Pending |
-| MOT-05 | Phase 2 | Pending |
-| MOT-06 | Phase 2 | Pending |
-| MOT-07 | Phase 2 | Pending |
-| CON-01 | Phase 3 | Pending |
-| CON-02 | Phase 3 | Pending |
-| CON-03 | Phase 3 | Pending |
-| CON-04 | Phase 3 | Pending |
-| CON-05 | Phase 3 | Pending |
-| CON-06 | Phase 3 | Pending |
-| CON-07 | Phase 3 | Pending |
-| CON-08 | Phase 3 | Pending |
-| CON-09 | Phase 3 | Pending |
-| CON-10 | Phase 3 | Pending |
-| CON-11 | Phase 3 | Pending |
-| CON-12 | Phase 3 | Pending |
-| CON-13 | Phase 3 | Pending |
-| CON-14 | Phase 3 | Pending |
-| FBK-01 | Phase 4 | Pending |
-| FBK-02 | Phase 4 | Pending |
-| FBK-03 | Phase 4 | Pending |
-| FBK-04 | Phase 4 | Pending |
-| FBK-05 | Phase 4 | Pending |
-| FBK-06 | Phase 4 | Pending |
+| MOT-01 | Phase 2 | Complete |
+| MOT-02 | Phase 2 | Complete |
+| MOT-03 | Phase 2 | Complete |
+| MOT-04 | Phase 2 | Complete |
+| MOT-05 | Phase 2 | Complete |
+| MOT-06 | Phase 2 | Complete |
+| MOT-07 | Phase 2 | Complete |
+| CON-01 | Phase 3 | Complete |
+| CON-02 | Phase 3 | Complete |
+| CON-03 | Phase 3 | Complete |
+| CON-04 | Phase 3 | Complete |
+| CON-05 | Phase 3 | Complete |
+| CON-06 | Phase 3 | Complete |
+| CON-07 | Phase 3 | Complete |
+| CON-08 | Phase 3 | Complete |
+| CON-09 | Phase 3 | Complete |
+| CON-10 | Phase 3 | Complete |
+| CON-11 | Phase 3 | Complete |
+| CON-12 | Phase 3 | Complete |
+| CON-13 | Phase 3 | Complete |
+| CON-14 | Phase 3 | Complete |
+| FBK-01 | Phase 4 | Complete |
+| FBK-02 | Phase 4 | Complete |
+| FBK-03 | Phase 4 | Complete |
+| FBK-04 | Phase 4 | Complete |
+| FBK-05 | Phase 4 | Complete |
+| FBK-06 | Phase 4 | Complete |
 | INF-01 | Phase 5 | Pending |
 | INF-02 | Phase 5 | Pending |
 | INF-03 | Phase 6 | Pending |
@@ -174,4 +174,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-19*
-*Last updated: 2026-02-19 after roadmap creation — all 41 requirements mapped*
+*Last updated: 2026-02-20 after Phase 4 plan 04-03 end-of-tick feedback and BioRate/BioPulse contracts completion*

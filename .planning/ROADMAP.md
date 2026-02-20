@@ -4,6 +4,8 @@
 
 V2 is a clean rebuild that adds intrinsic motivation to V1's proven pipeline architecture. The build follows the strict dependency chain: biological foundation first (nothing else can be computed without bio state), then drive computation (pure functions, fully testable without LLM), then consciousness extension (the highest-risk surface — prompt translation must shift LLM behavioral register), then feedback path wiring (closes the loop), then loop integration (assembles all components into a running simulation), and finally configuration and output (all tunable values reachable without code changes). Each phase delivers one complete, independently testable capability.
 
+Execution policy: continue from existing repository state (do not replay already-satisfied plans), and place new implementation under `v2/internal/...` package boundaries.
+
 ## Phases
 
 **Phase Numbering:**
@@ -12,10 +14,10 @@ V2 is a clean rebuild that adds intrinsic motivation to V1's proven pipeline arc
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Biological Foundation** - Slim bio model (8-10 vars), decay, thresholds, noise
-- [ ] **Phase 2: Motivation Layer** - Pure-function drive computation from bio state and personality
-- [ ] **Phase 3: Consciousness Extension** - Prompt translation, multi-tag feedback parser, thought queue
-- [ ] **Phase 4: Feedback Loop** - Bidirectional bio/drive changes from LLM output
+- [x] **Phase 1: Biological Foundation** - Slim bio model (8-10 vars), decay, thresholds, noise
+- [x] **Phase 2: Motivation Layer** - Pure-function drive computation from bio state and personality
+- [x] **Phase 3: Consciousness Extension** - Prompt translation, multi-tag feedback parser, thought queue
+- [x] **Phase 4: Feedback Loop** - Bidirectional bio/drive changes from LLM output
 - [ ] **Phase 5: Simulation Loop Integration** - Sequential tick wiring, input handling, scenario injection, CLI display
 - [ ] **Phase 6: Configuration** - All tunable parameters in config struct, no buried constants
 
@@ -34,15 +36,15 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 
 ### Phase 2: Motivation Layer
-**Goal**: Drive urgencies are computed from bio state and personality as a pure function — testable without any LLM involvement
+**Goal**: Drive urgencies are computed from bio state and personality in deterministic, test-first code with a stable API contract
 **Depends on**: Phase 1
 **Requirements**: MOT-01, MOT-02, MOT-03, MOT-04, MOT-05, MOT-06, MOT-07
 **Success Criteria** (what must be TRUE):
   1. Given a fixed bio state and personality configuration, Compute() always returns the same MotivationState (referential transparency, verifiable by unit test)
   2. Each of the 5 drives produces a scalar 0-1 urgency that rises as its associated bio variable degrades (verified at bio extremes)
   3. The 7 personality factors change which drives dominate without overriding the bio-derived baseline (e.g., high curiosity raises stimulation drive urgency, not energy drive urgency)
-  4. Personality multipliers are applied exactly once — no drive double-counts personality during downstream processing
-  5. Goal selection and action candidates reflect the highest-urgency drive, producing different outputs at different bio states
+  4. Motivation computation has no hidden dependencies (`time.Now`, RNG, env, DB, network) and is safe for deterministic tests
+  5. Goal selection and action candidates reflect the highest-urgency drive with deterministic tie-breaking, producing reproducible outputs at different bio states
 **Plans**: TBD
 
 ### Phase 3: Consciousness Extension
@@ -67,6 +69,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. [DRIVE] override tags are clamped — LLM cannot suppress a drive below 50% of its bio-derived value, and override is visible in logs
   4. Action execution has per-action cooldowns — a repeated action within cooldown window is rejected and the associated drive remains unsatisfied
   5. All bio changes from feedback are applied at end-of-tick, not mid-tick (verified by inspecting state at intermediate points in a test scenario)
+  6. Feedback contracts use explicit type distinction: `BioRate` effects are dt-scaled, `BioPulse` effects are one-shot and never dt-scaled
 **Plans**: TBD
 
 ### Phase 5: Simulation Loop Integration
@@ -96,9 +99,9 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Biological Foundation | 2/6 | In Progress|  |
-| 2. Motivation Layer | 0/TBD | Not started | - |
-| 3. Consciousness Extension | 0/TBD | Not started | - |
-| 4. Feedback Loop | 0/TBD | Not started | - |
+| 1. Biological Foundation | 6/6 | Complete | 2026-02-19 |
+| 2. Motivation Layer | 2/2 | Complete | 2026-02-19 |
+| 3. Consciousness Extension | 3/3 | Complete | 2026-02-19 |
+| 4. Feedback Loop | 3/3 | Complete | 2026-02-20 |
 | 5. Simulation Loop Integration | 0/TBD | Not started | - |
 | 6. Configuration | 0/TBD | Not started | - |
