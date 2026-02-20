@@ -1,11 +1,10 @@
 # Requirements: VirtualPerson V2
 
-**Defined:** 2026-02-19
-**Core Value:** The person must exhibit intrinsic motivation — visible drives, desires, and frustrations that emerge from the interplay between biological state, a reward/motivation system, and LLM-driven consciousness.
+**Defined:** 2026-02-19  
+**Updated:** 2026-02-20  
+**Core Value:** The person must exhibit intrinsic motivation with visible, behavior-driving pressure (not narrative-only emotions).
 
 ## v1 Requirements
-
-Requirements for initial V2 release. Each maps to roadmap phases.
 
 ### Biology
 
@@ -13,7 +12,7 @@ Requirements for initial V2 release. Each maps to roadmap phases.
 - [x] **BIO-02**: Every bio variable connects to at least one drive in the motivation system
 - [x] **BIO-03**: Bio variables decay toward degraded states without engagement (slow-path degradation that accumulates over time)
 - [x] **BIO-04**: Slow-path degradation rates exceed homeostasis recovery rates when needs go unmet
-- [ ] **BIO-05**: Gaussian noise applied to bio state each tick to prevent deterministic stagnation
+- [x] **BIO-05**: Gaussian noise applied to bio state each tick to prevent deterministic stagnation
 - [x] **BIO-06**: Bio state clamped within valid ranges per variable
 - [x] **BIO-07**: Threshold system detects critical bio conditions and surfaces them
 
@@ -31,147 +30,94 @@ Requirements for initial V2 release. Each maps to roadmap phases.
 
 - [x] **CON-01**: Drive intensities translated to phenomenological language in prompts (felt experience, never raw numbers)
 - [x] **CON-02**: Only top 1-2 drives injected as primary prompt context; lower drives as background texture
-- [x] **CON-03**: Active goal framed as implicit pull ("find something to eat"), not command ("GOAL: hunger")
-- [x] **CON-04**: LLM output parsed for [STATE: arousal=X, valence=Y] tag (carried from V1)
-- [x] **CON-05**: LLM output parsed for [ACTION: type] tag — what the person tries to do
-- [x] **CON-06**: LLM output parsed for [DRIVE: name=value] tag — optional drive perception override
+- [x] **CON-03**: Active goal framed as implicit pull, not command syntax
+- [x] **CON-04**: LLM output parsed for `[STATE: arousal=X, valence=Y]` tag
+- [x] **CON-05**: LLM output parsed for `[ACTION: type]` tag
+- [x] **CON-06**: LLM output parsed for `[DRIVE: name=value]` tag (optional)
 - [x] **CON-07**: All tags stripped from narrative content before display/storage
 - [x] **CON-08**: Defensive parsing with fallback to prior known-good state on malformed/missing tags
-- [x] **CON-09**: Action execution gated by environment — action fails if environment doesn't allow it
+- [x] **CON-09**: Action execution gated by environment — action fails if environment does not allow it
 - [x] **CON-10**: Failed actions leave drives unsatisfied (drive compounds)
-- [x] **CON-11**: Drive overrides clamped: effective_drive = max(raw_drive * 0.5, llm_reported_drive)
-- [x] **CON-12**: Spontaneous thought system fires on a ticker, drive-weighted (high-urgency drives dominate thought selection)
-- [x] **CON-13**: Spontaneous thoughts fire even at baseline bio state (associative drift category always available)
-- [x] **CON-14**: Thought continuity buffer included in all prompts (recent thought history)
+- [x] **CON-11**: Drive overrides clamped: `effective_drive = max(raw_drive*0.5, llm_reported_drive)`
+- [x] **CON-12**: Spontaneous thought system fires on a ticker, drive-weighted
+- [x] **CON-13**: Spontaneous thoughts fire even at baseline bio state (associative drift always available)
+- [x] **CON-14**: Thought continuity buffer included in all prompts
 
 ### Feedback Loop
 
-- [x] **FBK-01**: Emotional pulse path: [STATE] arousal/valence → calibrated bio changes (absolute pulses, not dt-scaled)
-- [x] **FBK-02**: Action execution path: successful [ACTION] → bio state changes (e.g., eat → hunger reduction)
-- [x] **FBK-03**: Drive override path: [DRIVE] → clamped perception update for next tick
-- [x] **FBK-04**: Action effects have cooldowns (e.g., eat cannot fire again for N seconds)
+- [x] **FBK-01**: Emotional pulse path: `[STATE]` arousal/valence to calibrated bio changes (absolute pulses, not dt-scaled)
+- [x] **FBK-02**: Action execution path: successful `[ACTION]` to bio state changes
+- [x] **FBK-03**: Drive override path: `[DRIVE]` to clamped perception update for next tick
+- [x] **FBK-04**: Action effects have cooldowns
 - [x] **FBK-05**: Bio changes from feedback applied at end of tick, not mid-tick
-- [x] **FBK-06**: Type distinction between BioRate (per-tick, dt-multiplied) and BioPulse (one-time, not dt-multiplied)
+- [x] **FBK-06**: Explicit type split between `BioRate` and `BioPulse`
 
 ### Infrastructure
 
-- [ ] **INF-01**: CLI output tagged by source layer: BIO / DRIVES / MIND
-- [ ] **INF-02**: Drive state changes displayed when significant
-- [ ] **INF-03**: Configuration struct for all tunable parameters (drive rates, degradation slopes, feedback multipliers, personality defaults, thresholds)
+- [x] **INF-01**: CLI output tagged by source layer: BIO / DRIVES / MIND
+- [x] **INF-02**: Drive state changes displayed when significant
+- [ ] **INF-03**: Configuration struct for all tunable parameters
 - [ ] **INF-04**: All rates, weights, and thresholds adjustable without code changes
-- [ ] **INF-05**: External input handling: speech, actions, environment changes (same conventions as V1)
-- [ ] **INF-06**: Scenario injection with explicit bio effects (cold room → body temp decay)
-- [ ] **INF-07**: Simulation loop: sequential tick — drain input → biology → motivation → consciousness → feedback
+- [x] **INF-05**: External input handling: speech, actions, environment changes (same conventions as v1)
+- [x] **INF-06**: Scenario injection with explicit bio effects
+- [x] **INF-07**: Simulation loop sequencing contract: drain input -> biology -> motivation -> consciousness -> feedback
+- [ ] **INF-08**: Executable runtime entrypoint with tick scheduler, input loop, and graceful shutdown
 
-## v2 Requirements
+### Initial Profile (discussion-derived)
 
-Deferred to V2.1. Tracked but not in current roadmap.
+- [ ] **PRF-01**: Startup requires an explicit profile contract containing baseline bio state, personality factors, and identity seed fields
+- [ ] **PRF-02**: Profile includes stress/cortisol reactivity factor that measurably modulates stress-related bio changes
+- [ ] **PRF-03**: Required start-situation context fields are validated before runtime start (environment, operator relation stance, immediate constraints)
 
-### Identity Erosion
+## Discussion-Derived Basis (2026-02-20)
 
-- **IDE-01**: Identity coherence weakens under isolation and extreme bio degradation
-- **IDE-02**: Low coherence produces fragmented/contradictory self-narrative in prompts
-- **IDE-03**: Erosion reversible through engagement (not permanent psychological damage)
+The current roadmap explicitly incorporates these discussion constraints:
+- Consciousness requires both motivation and reflection to avoid passivity.
+- Intrinsic motivation must create pressure that changes behavior.
+- A defined starting situation is required for meaningful simulation onset.
+- Person characterization must include stress-reactivity traits (for example, cortisol sensitivity).
+- Generative AI may assist interpretation, but core state transitions remain code-contract based.
 
-### Behavioral Drift
+## v2 Requirements (deferred)
 
-- **DRF-01**: Drive frustration produces phase transitions: seeking → demanding → collapsed/resigned
-- **DRF-02**: Collapsed phase qualitatively different from seeking (not just intensity scaling)
-
-### Goal Formation
-
-- **GOL-01**: Person spontaneously forms goals from drive state ("I want to do X")
-- **GOL-02**: Goals compete with drives in thought queue
-
-### LLM Drive Modulation
-
-- **MOD-01**: LLM can modulate drive intensity through reasoning (push through fatigue, ignore safety)
-- **MOD-02**: Modulation bounded — suppressed drive still decays slowly; body eventually overrides
-
-### Satisfaction Events
-
-- **SAT-01**: Drive satisfaction produces reward pulse proportional to drive intensity at time of satisfaction
-- **SAT-02**: Greater deprivation → more potent satisfaction (dopamine-style learning curve)
-
-### Persistence
-
-- **PER-01**: SQLite persistence for bio state, personality, identity, memories
-- **PER-02**: ChronicState persisted across sessions
-- **PER-03**: Motivation history and drive log tables
-- **PER-04**: Bio state and identity core persisted atomically in same transaction
-
-### Reviewer
-
-- **REV-01**: Psychologist reviewer at 3-minute tick rate with motivation context
-- **REV-02**: Reviewer includes drive trajectory and predictions in analysis
-- **REV-03**: Reviewer emits identity-consistency assessments
+Deferred to V2.1 and beyond:
+- Identity erosion dynamics (`IDE-*`)
+- Behavioral drift phases (`DRF-*`)
+- Goal formation (`GOL-*`)
+- Extended LLM drive modulation (`MOD-*`)
+- Satisfaction reward events (`SAT-*`)
+- SQLite persistence expansion (`PER-*`)
+- Reviewer extensions (`REV-*`)
 
 ## Out of Scope
 
-| Feature | Reason |
-|---------|--------|
-| Circadian rhythm system | Adds bio-realism without motivational richness; inject as scenario context if needed |
-| 20-variable biological model | V1 proved complexity without proportional behavioral value |
-| Big Five personality model | Replaced by 7 motivation-serving factors |
-| Multi-agent social interaction | Operator IS the social relationship; enormous complexity for no hypothesis validation |
-| Web dashboard / WebSocket server | Focus on core simulation validation; CLI sufficient for V2 |
-| i18n / localization | English only for V2 |
-| Multi-session identity arc | Requires long-term pattern infrastructure; defer to V3 |
-| Scenario scripting / narrative engine | Product feature, not simulation validation feature |
+- Circadian rhythm system
+- 20-variable biological model
+- Big Five personality model
+- Multi-agent social interaction
+- Web dashboard / WebSocket server
+- i18n / localization
+- Scenario scripting engine
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BIO-01 | Phase 1 | Complete |
-| BIO-02 | Phase 1 | Complete |
-| BIO-03 | Phase 1 | Complete |
-| BIO-04 | Phase 1 | Complete |
-| BIO-05 | Phase 1 | Pending |
-| BIO-06 | Phase 1 | Complete |
-| BIO-07 | Phase 1 | Complete |
-| MOT-01 | Phase 2 | Complete |
-| MOT-02 | Phase 2 | Complete |
-| MOT-03 | Phase 2 | Complete |
-| MOT-04 | Phase 2 | Complete |
-| MOT-05 | Phase 2 | Complete |
-| MOT-06 | Phase 2 | Complete |
-| MOT-07 | Phase 2 | Complete |
-| CON-01 | Phase 3 | Complete |
-| CON-02 | Phase 3 | Complete |
-| CON-03 | Phase 3 | Complete |
-| CON-04 | Phase 3 | Complete |
-| CON-05 | Phase 3 | Complete |
-| CON-06 | Phase 3 | Complete |
-| CON-07 | Phase 3 | Complete |
-| CON-08 | Phase 3 | Complete |
-| CON-09 | Phase 3 | Complete |
-| CON-10 | Phase 3 | Complete |
-| CON-11 | Phase 3 | Complete |
-| CON-12 | Phase 3 | Complete |
-| CON-13 | Phase 3 | Complete |
-| CON-14 | Phase 3 | Complete |
-| FBK-01 | Phase 4 | Complete |
-| FBK-02 | Phase 4 | Complete |
-| FBK-03 | Phase 4 | Complete |
-| FBK-04 | Phase 4 | Complete |
-| FBK-05 | Phase 4 | Complete |
-| FBK-06 | Phase 4 | Complete |
-| INF-01 | Phase 5 | Pending |
-| INF-02 | Phase 5 | Pending |
-| INF-03 | Phase 6 | Pending |
-| INF-04 | Phase 6 | Pending |
-| INF-05 | Phase 5 | Pending |
-| INF-06 | Phase 5 | Pending |
-| INF-07 | Phase 5 | Pending |
+| BIO-01..BIO-07 | 1 | Complete |
+| MOT-01..MOT-07 | 2 | Complete |
+| CON-01..CON-14 | 3 | Complete |
+| FBK-01..FBK-06 | 4 | Complete |
+| INF-05 | 5 (`05-02`) | Complete |
+| INF-06 | 5 (`05-03`) | Complete |
+| INF-01 | 5 (`05-04`) | Complete |
+| INF-02 | 5 (`05-04`) | Complete |
+| INF-07 | 5 (`05-01`) | Complete |
+| INF-08 | 5 (`05-05`) | Pending |
+| INF-03 | 6 (`06-01`) | Pending |
+| INF-04 | 6 (`06-02`) | Pending |
+| PRF-01..PRF-03 | 6 (`06-03`) | Pending |
 
 **Coverage:**
-- v1 requirements: 41 total
-- Mapped to phases: 41
+- Active v1 requirements: 45 total
+- Mapped to phases: 45
 - Unmapped: 0
-
----
-*Requirements defined: 2026-02-19*
-*Last updated: 2026-02-20 after Phase 4 plan 04-03 end-of-tick feedback and BioRate/BioPulse contracts completion*
